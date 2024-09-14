@@ -25,7 +25,6 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
     uint256 public constant SECOND_SIGNATURE_ALGORITHM = 2;
 
     address SIGNER = makeAddr("signer");
-    address NOT_VERIFIER_CONTRACT = makeAddr("notVerifierContract");
 
     event Register(address indexed recipient, uint256 indexed merkle_root, uint256 indexed nullifier);
 
@@ -85,13 +84,11 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         assertEq(isSigner, true);
     }
 
-    function testAddingNewSignerAsUserWillFail() public {
+    function testAddingNewSignerAsUserWillFail(address user) public {
         address SIGNER2 = makeAddr("signer2");
 
-        address USER = makeAddr("user");
-
-        vm.prank(USER);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, USER));
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
         proofOfPassportRegister.setSigner(SIGNER2);
     }
 
@@ -125,12 +122,13 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         assertEq(isSigner, false);
     }
 
-    function testUserShouldNotBeAbleToRemoveSigner() public {
-        address USER = makeAddr("user");
+    function testUserShouldNotBeAbleToRemoveSigner(address user) public {
+        address owner = proofOfPassportRegister.owner();
+        // Exclude the owner from the fuzzed user addresses
+        vm.assume(user != owner);
 
-        vm.prank(USER);
-
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, USER));
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
         proofOfPassportRegister.removeSigner(SIGNER);
     }
 
@@ -169,13 +167,18 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, address(0));
     }
 
-    function testOwnerShouldNotBeAbleToAddWrongVerifierContract() public {
+    function testOwnerShouldNotBeAbleToAddWrongVerifierContract(address notAContract) public {
+        // Skip test if 'notAContract' is actually a contract
+        vm.assume(notAContract.code.length == 0);
+        // Also, ensure it's not the zero address to avoid overlapping with other tests
+        vm.assume(notAContract != address(0));
+
         address owner = proofOfPassportRegister.owner();
 
         vm.prank(owner);
 
         vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__NotAContract.selector);
-        proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, NOT_VERIFIER_CONTRACT);
+        proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, notAContract);
     }
 
     function testOwnerShouldNotBeAbleToAddVerifierWithInvalidVerifier() public {
@@ -221,6 +224,17 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM);
     }
 
+    function testUserShouldNotBeAbleToAddVerifier(address user) public {
+        address owner = proofOfPassportRegister.owner();
+        // Exclude the owner from the fuzzed user addresses
+        vm.assume(user != owner);
+
+        Verifier_register_sha256WithRSASSAPSS_65537 mockVerifier = new Verifier_register_sha256WithRSASSAPSS_65537();
+
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
+        proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, address(mockVerifier));
+    }
     /*//////////////////////////////////////////////////////////////
                               VERIFIER CSCA
     //////////////////////////////////////////////////////////////*/
