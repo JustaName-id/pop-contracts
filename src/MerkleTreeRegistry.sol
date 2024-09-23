@@ -6,11 +6,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /**
  * @title MerkleTree Registry Contract
  * @notice This contract is used to store the Merkle Root of the supported public keys' Merkle Tree
+ * @author JustaLab
  */
 contract MerkleTreeRegistry is Ownable {
-    uint256 s_merkleRoot;
+    uint256 private s_merkleRoot;
 
     error MerkleTreeRegistry__SameRoot();
+
+    event RootUpdated(uint256 indexed newRoot);
 
     constructor(uint256 merkleRoot) Ownable(msg.sender) {
         s_merkleRoot = merkleRoot;
@@ -22,6 +25,8 @@ contract MerkleTreeRegistry is Ownable {
         }
 
         s_merkleRoot = merkleRoot;
+
+        emit RootUpdated(merkleRoot);
     }
 
     function checkRoot(uint256 merkleRoot) public view returns (bool) {

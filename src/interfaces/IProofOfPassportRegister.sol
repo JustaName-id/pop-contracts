@@ -23,6 +23,8 @@ interface IProofOfPassportRegister {
 
     error ProofOfPassportRegister__InvalidLength();
 
+    error ProofOfPassportRegister__CscaInvalidLength();
+
     error ProofOfPassportRegister__ProofAlreadyRegistered();
 
     error ProofOfPassportRegister__CallerNotSigner();
