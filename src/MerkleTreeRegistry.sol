@@ -18,7 +18,7 @@ contract MerkleTreeRegistry is Ownable {
     constructor(uint256 merkleRoot) Ownable(msg.sender) {
         s_merkleRoot = merkleRoot;
     }
-    
+
     function setRoot(uint256 merkleRoot) public onlyOwner {
         if (s_merkleRoot == merkleRoot) {
             revert MerkleTreeRegistry__SameRoot();
