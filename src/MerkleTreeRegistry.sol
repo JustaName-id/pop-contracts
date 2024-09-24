@@ -20,8 +20,8 @@ contract MerkleTreeRegistry is Ownable {
     }
 
     /**
-    * @notice Set the new Merkle Root
-    * @param merkleRoot The new Merkle Root
+     * @notice Set the new Merkle Root
+     * @param merkleRoot The new Merkle Root
      */
     function setRoot(uint256 merkleRoot) public onlyOwner {
         if (s_merkleRoot == merkleRoot) {
