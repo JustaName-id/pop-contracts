@@ -19,6 +19,10 @@ contract MerkleTreeRegistry is Ownable {
         s_merkleRoot = merkleRoot;
     }
 
+    /**
+    * @notice Set the new Merkle Root
+    * @param merkleRoot The new Merkle Root
+     */
     function setRoot(uint256 merkleRoot) public onlyOwner {
         if (s_merkleRoot == merkleRoot) {
             revert MerkleTreeRegistry__SameRoot();
@@ -29,6 +33,11 @@ contract MerkleTreeRegistry is Ownable {
         emit RootUpdated(merkleRoot);
     }
 
+    /**
+     * @notice Check if the given Merkle Root is the same as the stored Merkle Root
+     * @param merkleRoot The Merkle Root to check
+     * @return True if the given Merkle Root is the same as the stored Merkle Root
+     */
     function checkRoot(uint256 merkleRoot) public view returns (bool) {
         return s_merkleRoot == merkleRoot;
     }
