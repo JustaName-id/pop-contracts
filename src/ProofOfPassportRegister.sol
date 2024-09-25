@@ -81,10 +81,6 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, MerkleTreeRegistry
         uint256 signatureAlgorithmCsca,
         address recipient
     ) external onlySigner(msg.sender) {
-        if (!checkRoot(proofCsca.merkle_root)) {
-            revert ProofOfPassportRegister__InvalidMerkleRoot();
-        }
-
         if (s_nullifiers[proof.nullifier][recipient]) {
             revert ProofOfPassportRegister__ProofAlreadyRegistered();
         }
@@ -304,6 +300,10 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, MerkleTreeRegistry
 
         if (proof.blinded_dsc_commitment != proofCsca.blinded_dsc_commitment) {
             revert ProofOfPassportRegister__BlindedDSCCommitmentDontMatch();
+        }
+
+        if (!checkRoot(proofCsca.merkle_root)) {
+            revert ProofOfPassportRegister__InvalidMerkleRoot();
         }
 
         if (!_verifyProof(proof, signatureAlgorithm)) {
