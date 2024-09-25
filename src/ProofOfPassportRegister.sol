@@ -357,8 +357,4 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, MerkleTreeRegistry
     function checkIfAddressIsSigner(address signer) public view returns (bool) {
         return s_signers[signer];
     }
-
-    function checkIfRecipientIsRegistered(uint256 nullifier, address recipient) public view returns (bool) {
-        return s_nullifiers[nullifier][recipient];
-    }
 }
