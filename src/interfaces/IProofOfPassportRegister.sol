@@ -117,6 +117,4 @@ interface IProofOfPassportRegister {
     function getCSCAVerifier(uint256 signatureAlgorithm) external view returns (address);
 
     function checkIfAddressIsSigner(address signer) external view returns (bool);
-
-    function checkIfRecipientIsRegistered(uint256 nullifier, address recipient) external view returns (bool);
 }
