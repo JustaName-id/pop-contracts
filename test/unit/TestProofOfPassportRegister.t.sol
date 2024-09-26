@@ -24,6 +24,8 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
     uint256[] cscaSignatureAlgorithms;
     address[] cscaVerifiers;
     address[] signers;
+    IProofOfPassportRegister.Proof public proof;
+    IProofOfPassportRegister.CSCAProof public cscaProof;
 
     uint256 public constant SECOND_SIGNATURE_ALGORITHM = 2;
     uint256 public constant SECOND_CSCA_SIGNATURE_ALGORITHM = 2;
@@ -33,9 +35,8 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
     address SIGNER = makeAddr("signer");
 
-    event Register(
+    event RecipientRegistered(
         address indexed recipient,
-        uint256 indexed merkle_root,
         uint256 indexed nullifier
     );
 
@@ -74,6 +75,44 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         cscaSignatureAlgorithms = config.cscaSignatureAlgorithms;
         cscaVerifiers = config.cscaVerifiers;
         signers = config.signers;
+
+        proof = IProofOfPassportRegister.Proof({
+            a: [uint256(0), uint256(0)],
+            b: [[uint256(0), uint256(0)], [uint256(0), uint256(0)]],
+            c: [uint256(0), uint256(0)],
+            blinded_dsc_commitment: uint256(0),
+            nullifier: NULLIFIER,
+            commitment: uint256(0),
+            attestation_id: ATTESTATION_ID
+        });
+
+        cscaProof = IProofOfPassportRegister.CSCAProof({
+            a: [uint256(0), uint256(0)],
+            b: [[uint256(0), uint256(0)], [uint256(0), uint256(0)]],
+            c: [uint256(0), uint256(0)],
+            blinded_dsc_commitment: uint256(0),
+            merkle_root: MERKLE_ROOT
+        });
+
+        vm.mockCall(
+            verifiers[0],
+            abi.encodeWithSelector(
+                Verifier_register_sha256WithRSASSAPSS_65537(verifiers[0])
+                    .verifyProof
+                    .selector
+            ),
+            abi.encode(true)
+        );
+
+        vm.mockCall(
+            cscaVerifiers[0],
+            abi.encodeWithSelector(
+                Verifier_dsc_sha256_rsa_4096(cscaVerifiers[0])
+                    .verifyProof
+                    .selector
+            ),
+            abi.encode(true)
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -130,6 +169,10 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
     function testAddingNewSignerAsUserWillFail(address user) public {
         address SIGNER2 = makeAddr("signer2");
+
+        address owner = proofOfPassportRegister.owner();
+        // Exclude the signer from the fuzzed user addresses
+        vm.assume(user != owner);
 
         vm.prank(user);
         vm.expectRevert(
@@ -328,8 +371,6 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         // Exclude the owner from the fuzzed user addresses
         vm.assume(user != owner);
 
-        Verifier_register_sha256WithRSASSAPSS_65537 mockVerifier = new Verifier_register_sha256WithRSASSAPSS_65537();
-
         vm.prank(user);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -483,8 +524,6 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         // Exclude the owner from the fuzzed user addresses
         vm.assume(user != owner);
 
-        Verifier_dsc_sha256_rsa_4096 mockCscaVerifier = new Verifier_dsc_sha256_rsa_4096();
-
         vm.prank(user);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -498,10 +537,545 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
     /*//////////////////////////////////////////////////////////////
                              REGISTER WITH PROOF
     //////////////////////////////////////////////////////////////*/
+    function testSignerShouldBeAbleToRegisterProofAndEmitEventCorrectly()
+        public
+    {
+        address RECIPIENT = makeAddr("recipient");
+
+        vm.expectEmit(
+            true,
+            true,
+            false,
+            false,
+            address(proofOfPassportRegister)
+        );
+        emit RecipientRegistered(RECIPIENT, NULLIFIER);
+
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+
+        bool isRegistered = proofOfPassportRegister.isRegistered(
+            NULLIFIER,
+            RECIPIENT
+        );
+        assertEq(isRegistered, true);
+    }
+
+    function testUserShouldNotBeAbleToRegisterWithProof(address user) public {
+        address RECIPIENT = makeAddr("recipient");
+        // Exclude the signer from the fuzzed user addresses
+        vm.assume(user != SIGNER);
+
+        vm.prank(user);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__CallerNotSigner
+                    .selector
+            )
+        );
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfRegisterTwice() public {
+        address RECIPIENT = makeAddr("recipient");
+
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+
+        vm.prank(SIGNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__ProofAlreadyRegistered
+                    .selector
+            )
+        );
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfInvalidSignatureAlgorithmWhileRegistering(
+        uint256 signatureAlgorithm
+    ) public {
+        address RECIPIENT = makeAddr("recipient");
+        // Exclude the valid signature algorithm from the fuzzed inputs
+        vm.assume(signatureAlgorithm != SIGNATURE_ALGORITHM);
+
+        vm.prank(SIGNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__UnsupportedSignatureAlgorithm
+                    .selector
+            )
+        );
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            signatureAlgorithm,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfInvalidCscaSignatureAlgorithmWhileRegistering(
+        uint256 cscaSignatureAlgorithm
+    ) public {
+        address RECIPIENT = makeAddr("recipient");
+        // Exclude the valid signature algorithm from the fuzzed inputs
+        vm.assume(cscaSignatureAlgorithm != SIGNATURE_ALGORITHM);
+
+        vm.prank(SIGNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister_UnsupportedSignatureAlgorithmCSCA
+                    .selector
+            )
+        );
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            cscaSignatureAlgorithm,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfInvalidAttestationIdWhileRegistering(
+        uint256 newAttestationId
+    ) public {
+        address RECIPIENT = makeAddr("recipient");
+
+        vm.assume(newAttestationId != ATTESTATION_ID);
+        proof.attestation_id = newAttestationId;
+
+        vm.prank(SIGNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__InvalidAttestationId
+                    .selector
+            )
+        );
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfBlindedDscCommitmentDontMatchWhileRegistering(
+        uint256 newBlindedDscCommitment
+    ) public {
+        address RECIPIENT = makeAddr("recipient");
+
+        vm.assume(newBlindedDscCommitment != uint256(0));
+        proof.blinded_dsc_commitment = newBlindedDscCommitment;
+
+        vm.prank(SIGNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__BlindedDSCCommitmentDontMatch
+                    .selector
+            )
+        );
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfInvalidMerkleRootWhileRegistering(
+        uint256 newMerkleRoot
+    ) public {
+        address RECIPIENT = makeAddr("recipient");
+
+        vm.assume(newMerkleRoot != MERKLE_ROOT);
+        cscaProof.merkle_root = newMerkleRoot;
+
+        vm.prank(SIGNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__InvalidMerkleRoot
+                    .selector
+            )
+        );
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfInvalidProofWhileRegistering() public {
+        address RECIPIENT = makeAddr("recipient");
+
+        vm.mockCall(
+            verifiers[0],
+            abi.encodeWithSelector(
+                Verifier_register_sha256WithRSASSAPSS_65537(verifiers[0])
+                    .verifyProof
+                    .selector
+            ),
+            abi.encode(false)
+        );
+
+        vm.prank(SIGNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__InvalidProof
+                    .selector
+            )
+        );
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfInvalidCscaProofWhileRegistering() public {
+        address RECIPIENT = makeAddr("recipient");
+
+        vm.mockCall(
+            cscaVerifiers[0],
+            abi.encodeWithSelector(
+                Verifier_dsc_sha256_rsa_4096(cscaVerifiers[0])
+                    .verifyProof
+                    .selector
+            ),
+            abi.encode(false)
+        );
+
+        vm.prank(SIGNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__InvalidCSCAProof
+                    .selector
+            )
+        );
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
 
     /*//////////////////////////////////////////////////////////////
                              VALIDATE PROOF
     //////////////////////////////////////////////////////////////*/
+    function testShouldValidateProofAndEmitEvent() public {
+        address RECIPIENT = makeAddr("recipient");
+
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+
+        bool isValid = proofOfPassportRegister.validateProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+
+        assertEq(isValid, true);
+    }
+
+    function testShouldRevertIfNotRegisteredWhileValidating() public {
+        address RECIPIENT = makeAddr("recipient");
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__NullifierDoesNotExist
+                    .selector
+            )
+        );
+        proofOfPassportRegister.validateProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfInvalidSignatureAlgorithmWhileValidating(
+        uint256 newSignatureAlgorithm
+    ) public {
+        address RECIPIENT = makeAddr("recipient");
+        vm.assume(newSignatureAlgorithm != SIGNATURE_ALGORITHM);
+
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__UnsupportedSignatureAlgorithm
+                    .selector
+            )
+        );
+        proofOfPassportRegister.validateProof(
+            proof,
+            cscaProof,
+            newSignatureAlgorithm,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfInvalidCscaSignatureAlgorithmWhileValidating(
+        uint256 newCscaSignatureAlgorithm
+    ) public {
+        address RECIPIENT = makeAddr("recipient");
+        vm.assume(newCscaSignatureAlgorithm != CSCA_SIGNATURE_ALGORITHM);
+
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister_UnsupportedSignatureAlgorithmCSCA
+                    .selector
+            )
+        );
+        proofOfPassportRegister.validateProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            newCscaSignatureAlgorithm,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfInvalidAttestationIdWhileValidating(uint256 newAttestationId) public {
+        address RECIPIENT = makeAddr("recipient");
+        vm.assume(newAttestationId != ATTESTATION_ID);
+
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+
+        proof.attestation_id = newAttestationId;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__InvalidAttestationId
+                    .selector
+            )
+        );
+        proofOfPassportRegister.validateProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfBlindedDscCommitmentDontMatchWhileValidating(uint256 newBlindedDscCommitment) public {
+        address RECIPIENT = makeAddr("recipient");
+        vm.assume(newBlindedDscCommitment != uint256(0));
+
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+
+        proof.blinded_dsc_commitment = newBlindedDscCommitment;
+        
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__BlindedDSCCommitmentDontMatch
+                    .selector
+            )
+        );
+        proofOfPassportRegister.validateProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfInvalidMerkleRootWhileValidating(uint256 newMerkleRoot) public {
+        address RECIPIENT = makeAddr("recipient");
+        vm.assume(newMerkleRoot != MERKLE_ROOT);
+
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+
+        cscaProof.merkle_root = newMerkleRoot;
+        
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__InvalidMerkleRoot
+                    .selector
+            )
+        );
+        proofOfPassportRegister.validateProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfInvalidProofWhileValidating() public {
+        address RECIPIENT = makeAddr("recipient");
+
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+
+        vm.mockCall(
+            verifiers[0],
+            abi.encodeWithSelector(
+                Verifier_register_sha256WithRSASSAPSS_65537(verifiers[0])
+                    .verifyProof
+                    .selector
+            ),
+            abi.encode(false)
+        );
+        
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__InvalidProof
+                    .selector
+            )
+        );
+        proofOfPassportRegister.validateProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
+
+    function testShouldRevertIfInvalidCscaProofWhileValidating() public {
+        address RECIPIENT = makeAddr("recipient");
+
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+
+        vm.mockCall(
+            cscaVerifiers[0],
+            abi.encodeWithSelector(
+                Verifier_dsc_sha256_rsa_4096(cscaVerifiers[0])
+                    .verifyProof
+                    .selector
+            ),
+            abi.encode(false)
+        );
+        
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister
+                    .ProofOfPassportRegister__InvalidCSCAProof
+                    .selector
+            )
+        );
+        proofOfPassportRegister.validateProof(
+            proof,
+            cscaProof,
+            SIGNATURE_ALGORITHM,
+            CSCA_SIGNATURE_ALGORITHM,
+            RECIPIENT
+        );
+    }
 
     /*//////////////////////////////////////////////////////////////
                            MERKLE TREE REGISTRY

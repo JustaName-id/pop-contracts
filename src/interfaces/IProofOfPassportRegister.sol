@@ -53,11 +53,11 @@ interface IProofOfPassportRegister {
     }
 
     struct CSCAProof {
-        uint256 blinded_dsc_commitment;
-        uint256 merkle_root;
         uint256[2] a;
         uint256[2][2] b;
         uint256[2] c;
+        uint256 blinded_dsc_commitment;
+        uint256 merkle_root;
     }
 
     /**
