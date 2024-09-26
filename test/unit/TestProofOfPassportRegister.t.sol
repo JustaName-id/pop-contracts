@@ -9,7 +9,8 @@ import {DeployProofOfPassportRegister} from "../../script/DeployProofOfPassportR
 import {CodeConstants} from "../../script/HelperConfig.s.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IProofOfPassportRegister} from "../../src/interfaces/IProofOfPassportRegister.sol";
-import {Verifier_register_sha256WithRSASSAPSS_65537} from "../../src/verifiers/register/Verifier_register_sha256WithRSASSAPSS_65537.sol";
+import {Verifier_register_sha256WithRSASSAPSS_65537} from
+    "../../src/verifiers/register/Verifier_register_sha256WithRSASSAPSS_65537.sol";
 import {Verifier_dsc_sha256_rsa_4096} from "../../src/verifiers/dsc/Verifier_dsc_sha256_rsa_4096.sol";
 import {MerkleTreeRegistry} from "../../src/MerkleTreeRegistry.sol";
 
@@ -35,20 +36,11 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
     address SIGNER = makeAddr("signer");
 
-    event RecipientRegistered(
-        address indexed recipient,
-        uint256 indexed nullifier
-    );
+    event RecipientRegistered(address indexed recipient, uint256 indexed nullifier);
 
-    event VerifierSet(
-        uint256 indexed signature_algorithm,
-        address indexed verifier
-    );
+    event VerifierSet(uint256 indexed signature_algorithm, address indexed verifier);
 
-    event CSCAVerifierSet(
-        uint256 indexed signature_algorithm,
-        address indexed verifier
-    );
+    event CSCAVerifierSet(uint256 indexed signature_algorithm, address indexed verifier);
 
     event SignerSet(address indexed signer);
 
@@ -96,21 +88,13 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.mockCall(
             verifiers[0],
-            abi.encodeWithSelector(
-                Verifier_register_sha256WithRSASSAPSS_65537(verifiers[0])
-                    .verifyProof
-                    .selector
-            ),
+            abi.encodeWithSelector(Verifier_register_sha256WithRSASSAPSS_65537(verifiers[0]).verifyProof.selector),
             abi.encode(true)
         );
 
         vm.mockCall(
             cscaVerifiers[0],
-            abi.encodeWithSelector(
-                Verifier_dsc_sha256_rsa_4096(cscaVerifiers[0])
-                    .verifyProof
-                    .selector
-            ),
+            abi.encodeWithSelector(Verifier_dsc_sha256_rsa_4096(cscaVerifiers[0]).verifyProof.selector),
             abi.encode(true)
         );
     }
@@ -119,15 +103,10 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
                              INITIAL VALUES
     //////////////////////////////////////////////////////////////*/
     function testInitialValues() public view {
-        uint256 actualAttestationId = proofOfPassportRegister
-            .getAttestationId();
+        uint256 actualAttestationId = proofOfPassportRegister.getAttestationId();
         bool isSigner = proofOfPassportRegister.checkIfAddressIsSigner(SIGNER);
-        address verifier = proofOfPassportRegister.getVerifier(
-            SIGNATURE_ALGORITHM
-        );
-        address cscaVerifier = proofOfPassportRegister.getCSCAVerifier(
-            CSCA_SIGNATURE_ALGORITHM
-        );
+        address verifier = proofOfPassportRegister.getVerifier(SIGNATURE_ALGORITHM);
+        address cscaVerifier = proofOfPassportRegister.getCSCAVerifier(CSCA_SIGNATURE_ALGORITHM);
         uint256 root = proofOfPassportRegister.getRoot();
         address owner = proofOfPassportRegister.owner();
 
@@ -150,13 +129,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         address owner = proofOfPassportRegister.owner();
 
-        vm.expectEmit(
-            true,
-            false,
-            false,
-            false,
-            address(proofOfPassportRegister)
-        );
+        vm.expectEmit(true, false, false, false, address(proofOfPassportRegister));
         emit SignerSet(SIGNER2);
 
         vm.prank(owner);
@@ -175,12 +148,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.assume(user != owner);
 
         vm.prank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                user
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
         proofOfPassportRegister.setSigner(SIGNER2);
     }
 
@@ -189,24 +157,14 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(owner);
 
-        vm.expectRevert(
-            IProofOfPassportRegister
-                .ProofOfPassportRegister__ZeroAddress
-                .selector
-        );
+        vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__ZeroAddress.selector);
         proofOfPassportRegister.setSigner(address(0));
     }
 
     function testOwnerShouldBeAbleToRemoveSignerAndShouldEmitAnEvent() public {
         address owner = proofOfPassportRegister.owner();
 
-        vm.expectEmit(
-            true,
-            false,
-            false,
-            false,
-            address(proofOfPassportRegister)
-        );
+        vm.expectEmit(true, false, false, false, address(proofOfPassportRegister));
         emit SignerRemoved(SIGNER);
 
         vm.prank(owner);
@@ -223,12 +181,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.assume(user != owner);
 
         vm.prank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                user
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
         proofOfPassportRegister.removeSigner(SIGNER);
     }
 
@@ -240,24 +193,13 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         Verifier_register_sha256WithRSASSAPSS_65537 mockVerifier = new Verifier_register_sha256WithRSASSAPSS_65537();
 
-        vm.expectEmit(
-            true,
-            true,
-            false,
-            false,
-            address(proofOfPassportRegister)
-        );
+        vm.expectEmit(true, true, false, false, address(proofOfPassportRegister));
         emit VerifierSet(SECOND_SIGNATURE_ALGORITHM, address(mockVerifier));
 
         vm.prank(owner);
-        proofOfPassportRegister.setVerifier(
-            SECOND_SIGNATURE_ALGORITHM,
-            address(mockVerifier)
-        );
+        proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, address(mockVerifier));
 
-        address verifier = proofOfPassportRegister.getVerifier(
-            SECOND_SIGNATURE_ALGORITHM
-        );
+        address verifier = proofOfPassportRegister.getVerifier(SECOND_SIGNATURE_ALGORITHM);
 
         assertEq(verifier, address(mockVerifier));
     }
@@ -267,20 +209,11 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(owner);
 
-        vm.expectRevert(
-            IProofOfPassportRegister
-                .ProofOfPassportRegister__ZeroAddress
-                .selector
-        );
-        proofOfPassportRegister.setVerifier(
-            SECOND_SIGNATURE_ALGORITHM,
-            address(0)
-        );
+        vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__ZeroAddress.selector);
+        proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, address(0));
     }
 
-    function testOwnerShouldNotBeAbleToAddWrongVerifierContract(
-        address notAContract
-    ) public {
+    function testOwnerShouldNotBeAbleToAddWrongVerifierContract(address notAContract) public {
         // Skip test if 'notAContract' is actually a contract
         vm.assume(notAContract.code.length == 0);
         // Also, ensure it's not the zero address to avoid overlapping with other tests
@@ -290,15 +223,8 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(owner);
 
-        vm.expectRevert(
-            IProofOfPassportRegister
-                .ProofOfPassportRegister__NotAContract
-                .selector
-        );
-        proofOfPassportRegister.setVerifier(
-            SECOND_SIGNATURE_ALGORITHM,
-            notAContract
-        );
+        vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__NotAContract.selector);
+        proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, notAContract);
     }
 
     function testOwnerShouldNotBeAbleToAddVerifierWithInvalidVerifier() public {
@@ -306,15 +232,8 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(owner);
 
-        vm.expectRevert(
-            IProofOfPassportRegister
-                .ProofOfPassportRegister__InvalidVerifier
-                .selector
-        );
-        proofOfPassportRegister.setVerifier(
-            SECOND_SIGNATURE_ALGORITHM,
-            address(proofOfPassportRegister)
-        );
+        vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__InvalidVerifier.selector);
+        proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, address(proofOfPassportRegister));
     }
 
     function testUserShouldNotBeAbleToAddVerifier(address user) public {
@@ -325,16 +244,8 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         Verifier_register_sha256WithRSASSAPSS_65537 mockVerifier = new Verifier_register_sha256WithRSASSAPSS_65537();
 
         vm.prank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                user
-            )
-        );
-        proofOfPassportRegister.setVerifier(
-            SECOND_SIGNATURE_ALGORITHM,
-            address(mockVerifier)
-        );
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
+        proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, address(mockVerifier));
     }
 
     function testOwnerShouldBeAbleToRemoveVerifier() public {
@@ -343,9 +254,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.prank(owner);
         proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM);
 
-        address verifier = proofOfPassportRegister.getVerifier(
-            SIGNATURE_ALGORITHM
-        );
+        address verifier = proofOfPassportRegister.getVerifier(SIGNATURE_ALGORITHM);
 
         assertEq(verifier, address(0));
     }
@@ -353,13 +262,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
     function testShouldEmitEventIfVerifierRemovedSuccesfully() public {
         address owner = proofOfPassportRegister.owner();
 
-        vm.expectEmit(
-            true,
-            false,
-            true,
-            false,
-            address(proofOfPassportRegister)
-        );
+        vm.expectEmit(true, false, true, false, address(proofOfPassportRegister));
         emit VerifierRemoved(SIGNATURE_ALGORITHM);
 
         vm.prank(owner);
@@ -372,12 +275,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.assume(user != owner);
 
         vm.prank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                user
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
         proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM);
     }
 
@@ -385,35 +283,19 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
                               VERIFIER CSCA
     //////////////////////////////////////////////////////////////*/
 
-    function testOwnerShouldBeAbleToAddCscaVerifierAndItShouldEmitAnEvent()
-        public
-    {
+    function testOwnerShouldBeAbleToAddCscaVerifierAndItShouldEmitAnEvent() public {
         address owner = proofOfPassportRegister.owner();
 
         Verifier_dsc_sha256_rsa_4096 mockCscaVerifier = new Verifier_dsc_sha256_rsa_4096();
 
-        vm.expectEmit(
-            true,
-            true,
-            false,
-            false,
-            address(proofOfPassportRegister)
-        );
+        vm.expectEmit(true, true, false, false, address(proofOfPassportRegister));
 
-        emit CSCAVerifierSet(
-            SECOND_CSCA_SIGNATURE_ALGORITHM,
-            address(mockCscaVerifier)
-        );
+        emit CSCAVerifierSet(SECOND_CSCA_SIGNATURE_ALGORITHM, address(mockCscaVerifier));
 
         vm.prank(owner);
-        proofOfPassportRegister.setCSCAVerifier(
-            SECOND_CSCA_SIGNATURE_ALGORITHM,
-            address(mockCscaVerifier)
-        );
+        proofOfPassportRegister.setCSCAVerifier(SECOND_CSCA_SIGNATURE_ALGORITHM, address(mockCscaVerifier));
 
-        address cscaVerifier = proofOfPassportRegister.getCSCAVerifier(
-            SECOND_CSCA_SIGNATURE_ALGORITHM
-        );
+        address cscaVerifier = proofOfPassportRegister.getCSCAVerifier(SECOND_CSCA_SIGNATURE_ALGORITHM);
 
         assertEq(cscaVerifier, address(mockCscaVerifier));
     }
@@ -423,20 +305,11 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(owner);
 
-        vm.expectRevert(
-            IProofOfPassportRegister
-                .ProofOfPassportRegister__ZeroAddress
-                .selector
-        );
-        proofOfPassportRegister.setCSCAVerifier(
-            SECOND_CSCA_SIGNATURE_ALGORITHM,
-            address(0)
-        );
+        vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__ZeroAddress.selector);
+        proofOfPassportRegister.setCSCAVerifier(SECOND_CSCA_SIGNATURE_ALGORITHM, address(0));
     }
 
-    function testOwnerShouldNotBeAbleToAddWrongCscaVerifierContract(
-        address notAContract
-    ) public {
+    function testOwnerShouldNotBeAbleToAddWrongCscaVerifierContract(address notAContract) public {
         // Skip test if 'notAContract' is actually a contract
         vm.assume(notAContract.code.length == 0);
         // Also, ensure it's not the zero address to avoid overlapping with other tests
@@ -446,33 +319,17 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(owner);
 
-        vm.expectRevert(
-            IProofOfPassportRegister
-                .ProofOfPassportRegister__NotAContract
-                .selector
-        );
-        proofOfPassportRegister.setCSCAVerifier(
-            SECOND_CSCA_SIGNATURE_ALGORITHM,
-            notAContract
-        );
+        vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__NotAContract.selector);
+        proofOfPassportRegister.setCSCAVerifier(SECOND_CSCA_SIGNATURE_ALGORITHM, notAContract);
     }
 
-    function testOwnerShouldNotBeAbleToAddCscaVerifierWithInvalidVerifier()
-        public
-    {
+    function testOwnerShouldNotBeAbleToAddCscaVerifierWithInvalidVerifier() public {
         address owner = proofOfPassportRegister.owner();
 
         vm.prank(owner);
 
-        vm.expectRevert(
-            IProofOfPassportRegister
-                .ProofOfPassportRegister__InvalidCSCAVerifier
-                .selector
-        );
-        proofOfPassportRegister.setCSCAVerifier(
-            SECOND_CSCA_SIGNATURE_ALGORITHM,
-            address(proofOfPassportRegister)
-        );
+        vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__InvalidCSCAVerifier.selector);
+        proofOfPassportRegister.setCSCAVerifier(SECOND_CSCA_SIGNATURE_ALGORITHM, address(proofOfPassportRegister));
     }
 
     function testUserShouldNotBeAbleToAddCscaVerifier(address user) public {
@@ -483,38 +340,20 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         Verifier_dsc_sha256_rsa_4096 mockCscaVerifier = new Verifier_dsc_sha256_rsa_4096();
 
         vm.prank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                user
-            )
-        );
-        proofOfPassportRegister.setCSCAVerifier(
-            SECOND_CSCA_SIGNATURE_ALGORITHM,
-            address(mockCscaVerifier)
-        );
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
+        proofOfPassportRegister.setCSCAVerifier(SECOND_CSCA_SIGNATURE_ALGORITHM, address(mockCscaVerifier));
     }
 
-    function testOwnerShouldBeAbleToRemoveVerifierAndItShouldEmitEvent()
-        public
-    {
+    function testOwnerShouldBeAbleToRemoveVerifierAndItShouldEmitEvent() public {
         address owner = proofOfPassportRegister.owner();
 
-        vm.expectEmit(
-            true,
-            false,
-            true,
-            false,
-            address(proofOfPassportRegister)
-        );
+        vm.expectEmit(true, false, true, false, address(proofOfPassportRegister));
         emit CSCAVerifierRemoved(CSCA_SIGNATURE_ALGORITHM);
 
         vm.prank(owner);
         proofOfPassportRegister.removeCSCAVerifier(CSCA_SIGNATURE_ALGORITHM);
 
-        address cscaVerifier = proofOfPassportRegister.getCSCAVerifier(
-            CSCA_SIGNATURE_ALGORITHM
-        );
+        address cscaVerifier = proofOfPassportRegister.getCSCAVerifier(CSCA_SIGNATURE_ALGORITHM);
 
         assertEq(cscaVerifier, address(0));
     }
@@ -525,45 +364,25 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.assume(user != owner);
 
         vm.prank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                user
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
         proofOfPassportRegister.removeCSCAVerifier(CSCA_SIGNATURE_ALGORITHM);
     }
 
     /*//////////////////////////////////////////////////////////////
                              REGISTER WITH PROOF
     //////////////////////////////////////////////////////////////*/
-    function testSignerShouldBeAbleToRegisterProofAndEmitEventCorrectly()
-        public
-    {
+    function testSignerShouldBeAbleToRegisterProofAndEmitEventCorrectly() public {
         address RECIPIENT = makeAddr("recipient");
 
-        vm.expectEmit(
-            true,
-            true,
-            false,
-            false,
-            address(proofOfPassportRegister)
-        );
+        vm.expectEmit(true, true, false, false, address(proofOfPassportRegister));
         emit RecipientRegistered(RECIPIENT, NULLIFIER);
 
         vm.prank(SIGNER);
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
 
-        bool isRegistered = proofOfPassportRegister.isRegistered(
-            NULLIFIER,
-            RECIPIENT
-        );
+        bool isRegistered = proofOfPassportRegister.isRegistered(NULLIFIER, RECIPIENT);
         assertEq(isRegistered, true);
     }
 
@@ -574,18 +393,10 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(user);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__CallerNotSigner
-                    .selector
-            )
+            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__CallerNotSigner.selector)
         );
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
@@ -594,33 +405,19 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(SIGNER);
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
 
         vm.prank(SIGNER);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__ProofAlreadyRegistered
-                    .selector
-            )
+            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__ProofAlreadyRegistered.selector)
         );
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
-    function testShouldRevertIfInvalidSignatureAlgorithmWhileRegistering(
-        uint256 signatureAlgorithm
-    ) public {
+    function testShouldRevertIfInvalidSignatureAlgorithmWhileRegistering(uint256 signatureAlgorithm) public {
         address RECIPIENT = makeAddr("recipient");
         // Exclude the valid signature algorithm from the fuzzed inputs
         vm.assume(signatureAlgorithm != SIGNATURE_ALGORITHM);
@@ -628,23 +425,15 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.prank(SIGNER);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__UnsupportedSignatureAlgorithm
-                    .selector
+                IProofOfPassportRegister.ProofOfPassportRegister__UnsupportedSignatureAlgorithm.selector
             )
         );
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            signatureAlgorithm,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, signatureAlgorithm, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
-    function testShouldRevertIfInvalidCscaSignatureAlgorithmWhileRegistering(
-        uint256 cscaSignatureAlgorithm
-    ) public {
+    function testShouldRevertIfInvalidCscaSignatureAlgorithmWhileRegistering(uint256 cscaSignatureAlgorithm) public {
         address RECIPIENT = makeAddr("recipient");
         // Exclude the valid signature algorithm from the fuzzed inputs
         vm.assume(cscaSignatureAlgorithm != SIGNATURE_ALGORITHM);
@@ -652,23 +441,15 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.prank(SIGNER);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister_UnsupportedSignatureAlgorithmCSCA
-                    .selector
+                IProofOfPassportRegister.ProofOfPassportRegister_UnsupportedSignatureAlgorithmCSCA.selector
             )
         );
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            cscaSignatureAlgorithm,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, cscaSignatureAlgorithm, RECIPIENT
         );
     }
 
-    function testShouldRevertIfInvalidAttestationIdWhileRegistering(
-        uint256 newAttestationId
-    ) public {
+    function testShouldRevertIfInvalidAttestationIdWhileRegistering(uint256 newAttestationId) public {
         address RECIPIENT = makeAddr("recipient");
 
         vm.assume(newAttestationId != ATTESTATION_ID);
@@ -676,24 +457,14 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(SIGNER);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__InvalidAttestationId
-                    .selector
-            )
+            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidAttestationId.selector)
         );
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
-    function testShouldRevertIfBlindedDscCommitmentDontMatchWhileRegistering(
-        uint256 newBlindedDscCommitment
-    ) public {
+    function testShouldRevertIfBlindedDscCommitmentDontMatchWhileRegistering(uint256 newBlindedDscCommitment) public {
         address RECIPIENT = makeAddr("recipient");
 
         vm.assume(newBlindedDscCommitment != uint256(0));
@@ -702,23 +473,15 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.prank(SIGNER);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__BlindedDSCCommitmentDontMatch
-                    .selector
+                IProofOfPassportRegister.ProofOfPassportRegister__BlindedDSCCommitmentDontMatch.selector
             )
         );
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
-    function testShouldRevertIfInvalidMerkleRootWhileRegistering(
-        uint256 newMerkleRoot
-    ) public {
+    function testShouldRevertIfInvalidMerkleRootWhileRegistering(uint256 newMerkleRoot) public {
         address RECIPIENT = makeAddr("recipient");
 
         vm.assume(newMerkleRoot != MERKLE_ROOT);
@@ -726,18 +489,10 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(SIGNER);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__InvalidMerkleRoot
-                    .selector
-            )
+            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidMerkleRoot.selector)
         );
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
@@ -746,28 +501,14 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.mockCall(
             verifiers[0],
-            abi.encodeWithSelector(
-                Verifier_register_sha256WithRSASSAPSS_65537(verifiers[0])
-                    .verifyProof
-                    .selector
-            ),
+            abi.encodeWithSelector(Verifier_register_sha256WithRSASSAPSS_65537(verifiers[0]).verifyProof.selector),
             abi.encode(false)
         );
 
         vm.prank(SIGNER);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__InvalidProof
-                    .selector
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidProof.selector));
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
@@ -776,28 +517,16 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.mockCall(
             cscaVerifiers[0],
-            abi.encodeWithSelector(
-                Verifier_dsc_sha256_rsa_4096(cscaVerifiers[0])
-                    .verifyProof
-                    .selector
-            ),
+            abi.encodeWithSelector(Verifier_dsc_sha256_rsa_4096(cscaVerifiers[0]).verifyProof.selector),
             abi.encode(false)
         );
 
         vm.prank(SIGNER);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__InvalidCSCAProof
-                    .selector
-            )
+            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidCSCAProof.selector)
         );
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
@@ -809,19 +538,11 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(SIGNER);
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
 
         bool isValid = proofOfPassportRegister.validateProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
 
         assertEq(isValid, true);
@@ -831,80 +552,48 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         address RECIPIENT = makeAddr("recipient");
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__NullifierDoesNotExist
-                    .selector
-            )
+            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__NullifierDoesNotExist.selector)
         );
         proofOfPassportRegister.validateProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
-    function testShouldRevertIfInvalidSignatureAlgorithmWhileValidating(
-        uint256 newSignatureAlgorithm
-    ) public {
+    function testShouldRevertIfInvalidSignatureAlgorithmWhileValidating(uint256 newSignatureAlgorithm) public {
         address RECIPIENT = makeAddr("recipient");
         vm.assume(newSignatureAlgorithm != SIGNATURE_ALGORITHM);
 
         vm.prank(SIGNER);
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__UnsupportedSignatureAlgorithm
-                    .selector
+                IProofOfPassportRegister.ProofOfPassportRegister__UnsupportedSignatureAlgorithm.selector
             )
         );
         proofOfPassportRegister.validateProof(
-            proof,
-            cscaProof,
-            newSignatureAlgorithm,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, newSignatureAlgorithm, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
-    function testShouldRevertIfInvalidCscaSignatureAlgorithmWhileValidating(
-        uint256 newCscaSignatureAlgorithm
-    ) public {
+    function testShouldRevertIfInvalidCscaSignatureAlgorithmWhileValidating(uint256 newCscaSignatureAlgorithm) public {
         address RECIPIENT = makeAddr("recipient");
         vm.assume(newCscaSignatureAlgorithm != CSCA_SIGNATURE_ALGORITHM);
 
         vm.prank(SIGNER);
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister_UnsupportedSignatureAlgorithmCSCA
-                    .selector
+                IProofOfPassportRegister.ProofOfPassportRegister_UnsupportedSignatureAlgorithmCSCA.selector
             )
         );
         proofOfPassportRegister.validateProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            newCscaSignatureAlgorithm,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, newCscaSignatureAlgorithm, RECIPIENT
         );
     }
 
@@ -914,28 +603,16 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(SIGNER);
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
 
         proof.attestation_id = newAttestationId;
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__InvalidAttestationId
-                    .selector
-            )
+            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidAttestationId.selector)
         );
         proofOfPassportRegister.validateProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
@@ -945,28 +622,18 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(SIGNER);
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
 
         proof.blinded_dsc_commitment = newBlindedDscCommitment;
-        
+
         vm.expectRevert(
             abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__BlindedDSCCommitmentDontMatch
-                    .selector
+                IProofOfPassportRegister.ProofOfPassportRegister__BlindedDSCCommitmentDontMatch.selector
             )
         );
         proofOfPassportRegister.validateProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
@@ -976,28 +643,16 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(SIGNER);
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
 
         cscaProof.merkle_root = newMerkleRoot;
-        
+
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__InvalidMerkleRoot
-                    .selector
-            )
+            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidMerkleRoot.selector)
         );
         proofOfPassportRegister.validateProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
@@ -1006,36 +661,18 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(SIGNER);
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
 
         vm.mockCall(
             verifiers[0],
-            abi.encodeWithSelector(
-                Verifier_register_sha256WithRSASSAPSS_65537(verifiers[0])
-                    .verifyProof
-                    .selector
-            ),
+            abi.encodeWithSelector(Verifier_register_sha256WithRSASSAPSS_65537(verifiers[0]).verifyProof.selector),
             abi.encode(false)
         );
-        
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__InvalidProof
-                    .selector
-            )
-        );
+
+        vm.expectRevert(abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidProof.selector));
         proofOfPassportRegister.validateProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
@@ -1044,36 +681,20 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(SIGNER);
         proofOfPassportRegister.registerWithProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
 
         vm.mockCall(
             cscaVerifiers[0],
-            abi.encodeWithSelector(
-                Verifier_dsc_sha256_rsa_4096(cscaVerifiers[0])
-                    .verifyProof
-                    .selector
-            ),
+            abi.encodeWithSelector(Verifier_dsc_sha256_rsa_4096(cscaVerifiers[0]).verifyProof.selector),
             abi.encode(false)
         );
-        
+
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IProofOfPassportRegister
-                    .ProofOfPassportRegister__InvalidCSCAProof
-                    .selector
-            )
+            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidCSCAProof.selector)
         );
         proofOfPassportRegister.validateProof(
-            proof,
-            cscaProof,
-            SIGNATURE_ALGORITHM,
-            CSCA_SIGNATURE_ALGORITHM,
-            RECIPIENT
+            proof, cscaProof, SIGNATURE_ALGORITHM, CSCA_SIGNATURE_ALGORITHM, RECIPIENT
         );
     }
 
@@ -1089,13 +710,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
     function testOwnerShouldBeAbleToSetNewRootAndItEmitsAnEvent() public {
         address owner = proofOfPassportRegister.owner();
 
-        vm.expectEmit(
-            true,
-            false,
-            false,
-            false,
-            address(proofOfPassportRegister)
-        );
+        vm.expectEmit(true, false, false, false, address(proofOfPassportRegister));
         emit RootUpdated(NEW_MERKLE_ROOT);
 
         vm.prank(owner);
@@ -1111,9 +726,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(owner);
 
-        vm.expectRevert(
-            MerkleTreeRegistry.MerkleTreeRegistry__SameRoot.selector
-        );
+        vm.expectRevert(MerkleTreeRegistry.MerkleTreeRegistry__SameRoot.selector);
         proofOfPassportRegister.setRoot(MERKLE_ROOT);
     }
 
@@ -1123,12 +736,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.assume(user != owner);
 
         vm.prank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                user
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
         proofOfPassportRegister.setRoot(NEW_MERKLE_ROOT);
     }
 }
