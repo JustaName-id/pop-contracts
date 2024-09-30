@@ -6,7 +6,6 @@ import {Script} from "forge-std/Script.sol";
 import {Verifier_dsc_4096} from "../../../../src/verifiers/dsc/Verifier_dsc_4096.sol";
 
 contract TestVerifierDsc4096 is Test, Script {
-
     Verifier_dsc_4096 public verifier;
 
     /*//////////////////////////////////////////////////////////////

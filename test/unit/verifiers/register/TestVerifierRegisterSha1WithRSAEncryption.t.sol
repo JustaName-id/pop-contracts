@@ -3,10 +3,10 @@ pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
 import {Script} from "forge-std/Script.sol";
-import {Verifier_register_sha1WithRSAEncryption_65537} from "../../../../src/verifiers/register/Verifier_register_sha1WithRSAEncryption_65537.sol";
+import {Verifier_register_sha1WithRSAEncryption_65537} from
+    "../../../../src/verifiers/register/Verifier_register_sha1WithRSAEncryption_65537.sol";
 
 contract TestVerifierRegisterSha1WithRSAEncryption is Test, Script {
-
     Verifier_register_sha1WithRSAEncryption_65537 public verifier;
 
     /*//////////////////////////////////////////////////////////////
