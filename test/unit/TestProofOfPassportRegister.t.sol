@@ -252,9 +252,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         emit RecipientRegistered(RECIPIENT, NULLIFIER);
 
         vm.prank(SIGNER);
-        proofOfPassportRegister.registerWithProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
 
         bool isRegistered = proofOfPassportRegister.isRegistered(NULLIFIER, RECIPIENT);
         assertEq(isRegistered, true);
@@ -269,26 +267,20 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.expectRevert(
             abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__CallerNotSigner.selector)
         );
-        proofOfPassportRegister.registerWithProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
     }
 
     function testShouldRevertIfRegisterTwice() public {
         address RECIPIENT = makeAddr("recipient");
 
         vm.prank(SIGNER);
-        proofOfPassportRegister.registerWithProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
 
         vm.prank(SIGNER);
         vm.expectRevert(
             abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__ProofAlreadyRegistered.selector)
         );
-        proofOfPassportRegister.registerWithProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
     }
 
     function testShouldRevertIfInvalidSignatureAlgorithmWhileRegistering(uint256 signatureAlgorithm) public {
@@ -302,9 +294,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
                 IProofOfPassportRegister.ProofOfPassportRegister__UnsupportedSignatureAlgorithm.selector
             )
         );
-        proofOfPassportRegister.registerWithProof(
-            proof, signatureAlgorithm, RECIPIENT
-        );
+        proofOfPassportRegister.registerWithProof(proof, signatureAlgorithm, RECIPIENT);
     }
 
     function testShouldRevertIfInvalidAttestationIdWhileRegistering(uint256 newAttestationId) public {
@@ -317,9 +307,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.expectRevert(
             abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidAttestationId.selector)
         );
-        proofOfPassportRegister.registerWithProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
     }
 
     function testShouldRevertIfInvalidProofWhileRegistering() public {
@@ -333,9 +321,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(SIGNER);
         vm.expectRevert(abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidProof.selector));
-        proofOfPassportRegister.registerWithProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -345,13 +331,9 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         address RECIPIENT = makeAddr("recipient");
 
         vm.prank(SIGNER);
-        proofOfPassportRegister.registerWithProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
 
-        bool isValid = proofOfPassportRegister.validateProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        bool isValid = proofOfPassportRegister.validateProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
 
         assertEq(isValid, true);
     }
@@ -362,9 +344,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.expectRevert(
             abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__NullifierDoesNotExist.selector)
         );
-        proofOfPassportRegister.validateProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        proofOfPassportRegister.validateProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
     }
 
     function testShouldRevertIfInvalidSignatureAlgorithmWhileValidating(uint256 newSignatureAlgorithm) public {
@@ -372,18 +352,14 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.assume(newSignatureAlgorithm != SIGNATURE_ALGORITHM);
 
         vm.prank(SIGNER);
-        proofOfPassportRegister.registerWithProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
 
         vm.expectRevert(
             abi.encodeWithSelector(
                 IProofOfPassportRegister.ProofOfPassportRegister__UnsupportedSignatureAlgorithm.selector
             )
         );
-        proofOfPassportRegister.validateProof(
-            proof, newSignatureAlgorithm, RECIPIENT
-        );
+        proofOfPassportRegister.validateProof(proof, newSignatureAlgorithm, RECIPIENT);
     }
 
     function testShouldRevertIfInvalidAttestationIdWhileValidating(uint256 newAttestationId) public {
@@ -391,27 +367,21 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         vm.assume(newAttestationId != ATTESTATION_ID);
 
         vm.prank(SIGNER);
-        proofOfPassportRegister.registerWithProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
 
         proof.attestation_id = newAttestationId;
 
         vm.expectRevert(
             abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidAttestationId.selector)
         );
-        proofOfPassportRegister.validateProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        proofOfPassportRegister.validateProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
     }
 
     function testShouldRevertIfInvalidProofWhileValidating() public {
         address RECIPIENT = makeAddr("recipient");
 
         vm.prank(SIGNER);
-        proofOfPassportRegister.registerWithProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
 
         vm.mockCall(
             verifiers[0],
@@ -420,8 +390,6 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         );
 
         vm.expectRevert(abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidProof.selector));
-        proofOfPassportRegister.validateProof(
-            proof, SIGNATURE_ALGORITHM, RECIPIENT
-        );
+        proofOfPassportRegister.validateProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
     }
 }

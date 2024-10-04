@@ -56,17 +56,12 @@ interface IProofOfPassportRegister {
     /**
      * Functions
      */
-    function registerWithProof(
-        Proof calldata proof,
-        uint256 signatureAlgorithm,
-        address recipient
-    ) external;
+    function registerWithProof(Proof calldata proof, uint256 signatureAlgorithm, address recipient) external;
 
-    function validateProof(
-        Proof calldata proof,
-        uint256 signatureAlgorithm,
-        address recipient
-    ) external view returns (bool);
+    function validateProof(Proof calldata proof, uint256 signatureAlgorithm, address recipient)
+        external
+        view
+        returns (bool);
 
     function setVerifier(uint256 signatureAlgorithm, address verifier) external;
 

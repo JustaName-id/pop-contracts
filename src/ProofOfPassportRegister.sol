@@ -58,11 +58,10 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
      * @param recipient The recipient to register
      * @dev Only registered signers can call this function
      */
-    function registerWithProof(
-        Proof calldata proof,
-        uint256 signatureAlgorithm,
-        address recipient
-    ) external onlySigner(msg.sender) {
+    function registerWithProof(Proof calldata proof, uint256 signatureAlgorithm, address recipient)
+        external
+        onlySigner(msg.sender)
+    {
         if (s_nullifiers[proof.nullifier][recipient]) {
             revert ProofOfPassportRegister__ProofAlreadyRegistered();
         }
@@ -82,11 +81,11 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
      * @return true if the proof is valid
      * @dev This function will first check if the nullifier exists and then perform the proof checks
      */
-    function validateProof(
-        Proof calldata proof,
-        uint256 signatureAlgorithm,
-        address recipient
-    ) external view returns (bool) {
+    function validateProof(Proof calldata proof, uint256 signatureAlgorithm, address recipient)
+        external
+        view
+        returns (bool)
+    {
         if (s_nullifiers[proof.nullifier][recipient] == false) {
             revert ProofOfPassportRegister__NullifierDoesNotExist();
         }
@@ -194,10 +193,7 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
      *         - The `attestation_id` in the proof matches the expected attestation ID.
      *         - The `proof` provided is valid and verifiable using the specified `signatureAlgorithm`.
      */
-    function _performProofsChecks(
-        Proof calldata proof,
-        uint256 signatureAlgorithm
-    ) internal view {
+    function _performProofsChecks(Proof calldata proof, uint256 signatureAlgorithm) internal view {
         if (s_verifiers[signatureAlgorithm] == address(0)) {
             revert ProofOfPassportRegister__UnsupportedSignatureAlgorithm();
         }
@@ -245,7 +241,7 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
     function getVerifier(uint256 signatureAlgorithm) public view returns (address) {
         return s_verifiers[signatureAlgorithm];
     }
-    
+
     function checkIfAddressIsSigner(address signer) public view returns (bool) {
         return s_signers[signer];
     }

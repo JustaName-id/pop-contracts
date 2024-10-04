@@ -13,10 +13,7 @@ contract DeployProofOfPassportRegister is Script, CodeConstants {
 
         vm.startBroadcast(config.deployerKey);
         ProofOfPassportRegister register = new ProofOfPassportRegister(
-            config.attestationId,
-            config.signatureAlgorithms,
-            config.verifiers,
-            config.signers
+            config.attestationId, config.signatureAlgorithms, config.verifiers, config.signers
         );
         vm.stopBroadcast();
         return (register, helperConfig);
