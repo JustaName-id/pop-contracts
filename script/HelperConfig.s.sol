@@ -4,7 +4,6 @@ pragma solidity ^0.8.20;
 import {Script, console} from "forge-std/Script.sol";
 import {Verifier_register_sha256WithRSAEncryption_65537} from
     "../src/verifiers/register/Verifier_register_sha256WithRSAEncryption_65537.sol";
-import {Verifier_dsc_sha256_rsa_2048} from "../src/verifiers/dsc/Verifier_dsc_sha256_rsa_2048.sol";
 
 abstract contract CodeConstants {
     uint256 public constant MAINNET_ETH_CHAIN_ID = 1;
@@ -13,17 +12,13 @@ abstract contract CodeConstants {
 
     uint256 public constant ATTESTATION_ID =
         8518753152044246090169372947057357973469996808638122125210848696986717482788;
-    uint256 public constant MERKLE_ROOT = 16265790307011125658362292627401518982983756210990787658744129014512572229764;
 
     uint256 public constant SIGNATURE_ALGORITHM = 1;
-    uint256 public constant CSCA_SIGNATURE_ALGORITHM = 1;
 
     uint256 public constant NULLIFIER = uint256(0);
 
     uint256[] public initialSignatureAlgorithms;
     address[] public initialVerifiers;
-    uint256[] public initialCSCASignatureAlgorithms;
-    address[] public initialCSCAVerifiers;
 
     address[] public initialSigners;
 
@@ -36,11 +31,8 @@ contract HelperConfig is CodeConstants, Script {
 
     struct NetworkConfig {
         uint256 attestationId;
-        uint256 merkleRoot;
         uint256[] signatureAlgorithms;
         address[] verifiers;
-        uint256[] cscaSignatureAlgorithms;
-        address[] cscaVerifiers;
         address[] signers;
         uint256 deployerKey;
     }
@@ -73,7 +65,6 @@ contract HelperConfig is CodeConstants, Script {
         }
 
         initialSignatureAlgorithms.push(SIGNATURE_ALGORITHM);
-        initialCSCASignatureAlgorithms.push(CSCA_SIGNATURE_ALGORITHM);
 
         // Get Signer
         address SIGNER = makeAddr("signer");
@@ -84,19 +75,14 @@ contract HelperConfig is CodeConstants, Script {
         vm.startBroadcast();
         Verifier_register_sha256WithRSAEncryption_65537 sha256WithRSAEncryption =
             new Verifier_register_sha256WithRSAEncryption_65537();
-        Verifier_dsc_sha256_rsa_2048 dsc_sha256_rsa_2048 = new Verifier_dsc_sha256_rsa_2048();
         vm.stopBroadcast();
 
         initialVerifiers.push(address(sha256WithRSAEncryption));
-        initialCSCAVerifiers.push(address(dsc_sha256_rsa_2048));
 
         networkConfig = NetworkConfig({
             attestationId: ATTESTATION_ID,
-            merkleRoot: MERKLE_ROOT,
             signatureAlgorithms: initialSignatureAlgorithms,
             verifiers: initialVerifiers,
-            cscaSignatureAlgorithms: initialCSCASignatureAlgorithms,
-            cscaVerifiers: initialCSCAVerifiers,
             signers: initialSigners,
             deployerKey: DEFAULT_ANVIL_KEY
         });

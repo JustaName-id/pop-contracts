@@ -1,24 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IVerifier} from "./interfaces/IVerifier.sol";
-import {IVerifierCSCA} from "./interfaces/IVerifierCSCA.sol";
 import {IProofOfPassportRegister} from "./interfaces/IProofOfPassportRegister.sol";
-import {MerkleTreeRegistry} from "./MerkleTreeRegistry.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title Proof of Passport Register Contract
  * @notice This contract is used to store the proofs of passport and verify them
  * @author JustaLab
  */
-contract ProofOfPassportRegister is IProofOfPassportRegister, MerkleTreeRegistry {
+contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
     uint256 private immutable i_attestationId;
 
     mapping(uint256 => mapping(address => bool)) private s_nullifiers;
     mapping(uint256 signatureAlgorithm => address) private s_verifiers;
-    mapping(uint256 cscaSignatureAlgorithm => address) private s_cscaVerifier;
     mapping(address => bool) private s_signers;
 
     /**
@@ -35,27 +32,16 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, MerkleTreeRegistry
 
     constructor(
         uint256 attestationId,
-        uint256 merkleRoot,
         uint256[] memory signatureAlgorithms,
         address[] memory verifiers,
-        uint256[] memory signatureAlgorithmsCSCA,
-        address[] memory cscaVerifiers,
         address[] memory signers
-    ) MerkleTreeRegistry(merkleRoot) {
+    ) Ownable(msg.sender) {
         if (signatureAlgorithms.length != verifiers.length) {
-            revert ProofOfPassportRegister__InvalidLength();
-        }
-
-        if (signatureAlgorithmsCSCA.length != cscaVerifiers.length) {
             revert ProofOfPassportRegister__InvalidLength();
         }
 
         for (uint256 i = 0; i < signatureAlgorithms.length; i++) {
             setVerifier(signatureAlgorithms[i], verifiers[i]);
-        }
-
-        for (uint256 i = 0; i < signatureAlgorithmsCSCA.length; i++) {
-            setCSCAVerifier(signatureAlgorithmsCSCA[i], cscaVerifiers[i]);
         }
 
         for (uint256 i = 0; i < signers.length; i++) {
@@ -68,24 +54,20 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, MerkleTreeRegistry
     /**
      * @notice Register a recipient after checking if provided proofs are valid
      * @param proof The proof to verify
-     * @param proofCsca The CSCA proof to verify
      * @param signatureAlgorithm The signature algorithm used to sign the proof
-     * @param signatureAlgorithmCsca The signature algorithm used to sign the CSCA proof
      * @param recipient The recipient to register
      * @dev Only registered signers can call this function
      */
     function registerWithProof(
         Proof calldata proof,
-        CSCAProof calldata proofCsca,
         uint256 signatureAlgorithm,
-        uint256 signatureAlgorithmCsca,
         address recipient
     ) external onlySigner(msg.sender) {
         if (s_nullifiers[proof.nullifier][recipient]) {
             revert ProofOfPassportRegister__ProofAlreadyRegistered();
         }
 
-        _performProofsChecks(proof, proofCsca, signatureAlgorithm, signatureAlgorithmCsca);
+        _performProofsChecks(proof, signatureAlgorithm);
 
         s_nullifiers[proof.nullifier][recipient] = true;
 
@@ -95,25 +77,21 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, MerkleTreeRegistry
     /**
      * @notice Validates a proof
      * @param proof The proof to validate
-     * @param proofCsca The CSCA proof to validate
      * @param signatureAlgorithm The signature algorithm used to sign the proof
-     * @param signatureAlgorithmCsca The signature algorithm used to sign the CSCA proof
      * @param recipient The recipient to validate
      * @return true if the proof is valid
      * @dev This function will first check if the nullifier exists and then perform the proof checks
      */
     function validateProof(
         Proof calldata proof,
-        CSCAProof calldata proofCsca,
         uint256 signatureAlgorithm,
-        uint256 signatureAlgorithmCsca,
         address recipient
     ) external view returns (bool) {
         if (s_nullifiers[proof.nullifier][recipient] == false) {
             revert ProofOfPassportRegister__NullifierDoesNotExist();
         }
 
-        _performProofsChecks(proof, proofCsca, signatureAlgorithm, signatureAlgorithmCsca);
+        _performProofsChecks(proof, signatureAlgorithm);
 
         return true;
     }
@@ -144,31 +122,6 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, MerkleTreeRegistry
     }
 
     /**
-     * @notice Sets a new CSCA verifier address
-     * @param signatureAlgorithmCSCA The CSCA signature algorithm associated with the verifier
-     * @param cscaVerifier The new CSCA verifier address to set
-     * @dev This function is used to set a new CSCA verifier address.
-     *      It will check if the CSCA verifier address by first calling the _performVerifierChecks function.
-     *      It will also check if the CSCA verifier address is valid by calling the verifyProof function of the CSCA verifier contract
-     */
-    function setCSCAVerifier(uint256 signatureAlgorithmCSCA, address cscaVerifier) public onlyOwner {
-        _performVerifierChecks(cscaVerifier);
-
-        try IVerifierCSCA(cscaVerifier).verifyProof(
-            [uint256(0), uint256(0)],
-            [[uint256(0), uint256(0)], [uint256(0), uint256(0)]],
-            [uint256(0), uint256(0)],
-            [uint256(0), uint256(0)]
-        ) {} catch {
-            revert ProofOfPassportRegister__InvalidCSCAVerifier();
-        }
-
-        s_cscaVerifier[signatureAlgorithmCSCA] = cscaVerifier;
-
-        emit CSCAVerifierSet(signatureAlgorithmCSCA, cscaVerifier);
-    }
-
-    /**
      * @notice Adds new signer
      * @param signer The new signer address to add
      * @dev Only the owner can call this function
@@ -192,17 +145,6 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, MerkleTreeRegistry
         delete s_verifiers[signatureAlgorithm];
 
         emit VerifierRemoved(signatureAlgorithm);
-    }
-
-    /**
-     * @notice Removes a CSCA verifier address
-     * @param signatureAlgorithmCSCA The signature algorithm associated with the CSCA verifier to remove
-     * @dev Only the owner can call this function
-     */
-    function removeCSCAVerifier(uint256 signatureAlgorithmCSCA) public onlyOwner {
-        delete s_cscaVerifier[signatureAlgorithmCSCA];
-
-        emit CSCAVerifierRemoved(signatureAlgorithmCSCA);
     }
 
     /**
@@ -242,76 +184,30 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, MerkleTreeRegistry
     }
 
     /**
-     * @notice Verifies the provided CSCA proof using the specified signature algorithm by invoking the CSCA verifier contract.
-     * @param proofCsca The CSCA proof data containing cryptographic components (a, b, c) and commitments.
-     * @param signatureAlgorithmCsca The signature algorithm used to verify the CSCA proof.
-     * @return bool Returns `true` if the CSCA proof is valid, `false` otherwise.
-     * @notice This function performs the following:
-     *         - Retrieves the CSCA verifier contract for the provided `signatureAlgorithmCsca`.
-     *         - Calls the CSCA verifier contract's `verifyProof` function, passing the CSCA proof's cryptographic
-     *           components and commitments (blinded DSC commitment and Merkle root).
-     * @dev Reverts if the CSCA verifier contract is not set for the specified `signatureAlgorithmCsca`.
-     */
-    function _verifyProofCSCA(CSCAProof calldata proofCsca, uint256 signatureAlgorithmCsca)
-        internal
-        view
-        returns (bool)
-    {
-        return IVerifierCSCA(s_cscaVerifier[signatureAlgorithmCsca]).verifyProof(
-            proofCsca.a,
-            proofCsca.b,
-            proofCsca.c,
-            [uint256(proofCsca.blinded_dsc_commitment), uint256(proofCsca.merkle_root)]
-        );
-    }
-
-    /**
      * @notice Performs various checks on the provided proof and CSCA (Card Security Certificate Authority) proof to ensure
      *      their validity and compatibility with the system's requirements.
      * @param proof The proof data containing attestation information to verify.
-     * @param proofCsca The CSCA proof data which contains the blinded DSC commitment for verification.
      * @param signatureAlgorithm The signature algorithm used for verifying the attestation proof.
-     * @param signatureAlgorithmCsca The signature algorithm used for verifying the CSCA proof.
      * @dev This function verifies the following conditions:
      *         - The provided `signatureAlgorithm` is supported by the system.
      *         - The provided `signatureAlgorithmCsca` is supported for CSCA verification.
      *         - The `attestation_id` in the proof matches the expected attestation ID.
-     *         - The `blinded_dsc_commitment` in both the proof and CSCA proof must match.
      *         - The `proof` provided is valid and verifiable using the specified `signatureAlgorithm`.
-     *         - The `proofCsca` provided is valid and verifiable using the specified `signatureAlgorithmCsca`.
      */
     function _performProofsChecks(
         Proof calldata proof,
-        CSCAProof calldata proofCsca,
-        uint256 signatureAlgorithm,
-        uint256 signatureAlgorithmCsca
+        uint256 signatureAlgorithm
     ) internal view {
         if (s_verifiers[signatureAlgorithm] == address(0)) {
             revert ProofOfPassportRegister__UnsupportedSignatureAlgorithm();
-        }
-
-        if (s_cscaVerifier[signatureAlgorithmCsca] == address(0)) {
-            revert ProofOfPassportRegister_UnsupportedSignatureAlgorithmCSCA();
         }
 
         if (proof.attestation_id != i_attestationId) {
             revert ProofOfPassportRegister__InvalidAttestationId();
         }
 
-        if (proof.blinded_dsc_commitment != proofCsca.blinded_dsc_commitment) {
-            revert ProofOfPassportRegister__BlindedDSCCommitmentDontMatch();
-        }
-
-        if (!checkRoot(proofCsca.merkle_root)) {
-            revert ProofOfPassportRegister__InvalidMerkleRoot();
-        }
-
         if (!_verifyProof(proof, signatureAlgorithm)) {
             revert ProofOfPassportRegister__InvalidProof();
-        }
-
-        if (!_verifyProofCSCA(proofCsca, signatureAlgorithmCsca)) {
-            revert ProofOfPassportRegister__InvalidCSCAProof();
         }
     }
 
@@ -349,11 +245,7 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, MerkleTreeRegistry
     function getVerifier(uint256 signatureAlgorithm) public view returns (address) {
         return s_verifiers[signatureAlgorithm];
     }
-
-    function getCSCAVerifier(uint256 signatureAlgorithmCSCA) public view returns (address) {
-        return s_cscaVerifier[signatureAlgorithmCSCA];
-    }
-
+    
     function checkIfAddressIsSigner(address signer) public view returns (bool) {
         return s_signers[signer];
     }
