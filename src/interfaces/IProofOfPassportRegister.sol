@@ -9,8 +9,6 @@ interface IProofOfPassportRegister {
 
     error ProofOfPassportRegister__UnsupportedSignatureAlgorithm();
 
-    error ProofOfPassportRegister__InvalidAttestationId();
-
     error ProofOfPassportRegister__InvalidProof();
 
     error ProofOfPassportRegister__InvalidLength();
@@ -57,7 +55,7 @@ interface IProofOfPassportRegister {
 
     function validateProof(Proof calldata proof, address recipient) external view returns (bool);
 
-    function setVerifier(uint256 signatureAlgorithm, address verifier) external;
+    function setVerifier(uint256 signatureAlgorithm, address verifier, uint256 nullifierIndexInPubSigArray) external;
 
     function setSigner(address signer) external;
 

@@ -12,9 +12,12 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @author JustaLab
  */
 contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
+    uint256 public constant SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS = 0;
+
     mapping(uint256 => mapping(address => bool)) private s_nullifiers;
     mapping(uint256 signatureAlgorithm => address) private s_verifiers;
     mapping(address => bool) private s_signers;
+    mapping(uint256 signatureAlgorithm => uint256 nullifierIndexInPubSignalArray) s_nullifierIndexPerSignatureAlgorithm;
 
     /**
      * @param caller The caller address to check
@@ -28,15 +31,15 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
         _;
     }
 
-    constructor(uint256[] memory signatureAlgorithms, address[] memory verifiers, address[] memory signers)
+    constructor(uint256[] memory signatureAlgorithms, address[] memory verifiers, uint256[] memory nullifiersIndexesInPubSigArray,  address[] memory signers)
         Ownable(msg.sender)
     {
-        if (signatureAlgorithms.length != verifiers.length) {
+        if (signatureAlgorithms.length != verifiers.length || signatureAlgorithms.length != nullifiersIndexesInPubSigArray.length) {
             revert ProofOfPassportRegister__InvalidLength();
         }
 
         for (uint256 i = 0; i < signatureAlgorithms.length; i++) {
-            setVerifier(signatureAlgorithms[i], verifiers[i]);
+            setVerifier(signatureAlgorithms[i], verifiers[i], nullifiersIndexesInPubSigArray[i]);
         }
 
         for (uint256 i = 0; i < signers.length; i++) {
@@ -87,65 +90,27 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
      * @notice Sets a new verifier address
      * @param signatureAlgorithm The signature algorithm associated with the verifier
      * @param verifier The new verifier address to set
+     * @param nullifierIndexInPubSigArray The index of the nullifier in the pubSignals array
      * @dev This function is used to set a new verifier address.
      *      It will check if the verifier address by first calling the _performVerifierChecks function.
      *      It will also check if the verifier address is valid by calling the verifyProof function of the verifier contract
      */
-    function setVerifier(uint256 signatureAlgorithm, address verifier) public onlyOwner {
+    function setVerifier(uint256 signatureAlgorithm, address verifier, uint256 nullifierIndexInPubSigArray)
+        public
+        onlyOwner
+    {
         _performVerifierChecks(verifier);
 
-        try IVerifier(verifier).verifyProof(
-            [uint256(0), uint256(0)],
-            [[uint256(0), uint256(0)], [uint256(0), uint256(0)]],
-            [uint256(0), uint256(0)],
-            [
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0),
-                uint256(0)
-            ]
-        ) {} catch {
+        uint256[2] memory a = [uint256(0), uint256(0)];
+        uint256[2][2] memory b = [[uint256(0), uint256(0)], [uint256(0), uint256(0)]];
+        uint256[2] memory c = [uint256(0), uint256(0)];
+
+        uint256[45] memory pubSignals;
+
+        s_nullifierIndexPerSignatureAlgorithm[signatureAlgorithm] = nullifierIndexInPubSigArray;
+
+        try IVerifier(verifier).verifyProof(a, b, c, pubSignals) {}
+        catch {
             revert ProofOfPassportRegister__InvalidVerifier();
         }
 
@@ -251,8 +216,8 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
      * @notice The nullifier is the fourth element of the pubSignals array
      * @return nullifier The nullifier of the proof
      */
-    function _getNullifierFromProof(Proof calldata proof) internal pure returns (uint256) {
-        return proof.pubSignals[4];
+    function _getNullifierFromProof(Proof calldata proof) internal view returns (uint256) {
+        return proof.pubSignals[s_nullifierIndexPerSignatureAlgorithm[_getSignatureAlgorithmFromProof(proof)]];
     }
 
     /**
@@ -261,7 +226,7 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
      * @return signatureAlgorithm The signature algorithm of the proof
      */
     function _getSignatureAlgorithmFromProof(Proof calldata proof) internal pure returns (uint256) {
-        return proof.pubSignals[0];
+        return proof.pubSignals[SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS];
     }
 
     /**

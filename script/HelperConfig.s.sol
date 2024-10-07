@@ -11,11 +11,14 @@ abstract contract CodeConstants {
 
     uint256 public constant SIGNATURE_ALGORITHM = 1;
 
+    uint256 public constant NULLIFIER_INDEX_IN_PUB_SIGNAL = 4;
+
     uint256 public constant NULLIFIER = uint256(0);
 
     uint256[] public initialSignatureAlgorithms;
-    address[] public initialVerifiers;
 
+    address[] public initialVerifiers;
+    uint256[] public initialNullifiersIndexesInPubSigArray;
     address[] public initialSigners;
 
     uint256 public DEFAULT_ANVIL_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
@@ -28,6 +31,7 @@ contract HelperConfig is CodeConstants, Script {
     struct NetworkConfig {
         uint256[] signatureAlgorithms;
         address[] verifiers;
+        uint256[] nullifiersIndexesInPubSigArray;
         address[] signers;
         uint256 deployerKey;
     }
@@ -65,6 +69,7 @@ contract HelperConfig is CodeConstants, Script {
         address SIGNER = makeAddr("signer");
 
         initialSigners.push(SIGNER);
+        initialNullifiersIndexesInPubSigArray.push(NULLIFIER_INDEX_IN_PUB_SIGNAL);
 
         // Deploy the verifier contract
         vm.startBroadcast();
@@ -76,6 +81,7 @@ contract HelperConfig is CodeConstants, Script {
         networkConfig = NetworkConfig({
             signatureAlgorithms: initialSignatureAlgorithms,
             verifiers: initialVerifiers,
+            nullifiersIndexesInPubSigArray: initialNullifiersIndexesInPubSigArray,
             signers: initialSigners,
             deployerKey: DEFAULT_ANVIL_KEY
         });
