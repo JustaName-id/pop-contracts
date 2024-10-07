@@ -12,8 +12,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @author JustaLab
  */
 contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
-    uint256 private immutable i_attestationId;
-
     mapping(uint256 => mapping(address => bool)) private s_nullifiers;
     mapping(uint256 signatureAlgorithm => address) private s_verifiers;
     mapping(address => bool) private s_signers;
@@ -30,12 +28,9 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
         _;
     }
 
-    constructor(
-        uint256 attestationId,
-        uint256[] memory signatureAlgorithms,
-        address[] memory verifiers,
-        address[] memory signers
-    ) Ownable(msg.sender) {
+    constructor(uint256[] memory signatureAlgorithms, address[] memory verifiers, address[] memory signers)
+        Ownable(msg.sender)
+    {
         if (signatureAlgorithms.length != verifiers.length) {
             revert ProofOfPassportRegister__InvalidLength();
         }
@@ -47,50 +42,43 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
         for (uint256 i = 0; i < signers.length; i++) {
             setSigner(signers[i]);
         }
-
-        i_attestationId = attestationId;
     }
 
     /**
      * @notice Register a recipient after checking if provided proofs are valid
      * @param proof The proof to verify
-     * @param signatureAlgorithm The signature algorithm used to sign the proof
      * @param recipient The recipient to register
      * @dev Only registered signers can call this function
      */
-    function registerWithProof(Proof calldata proof, uint256 signatureAlgorithm, address recipient)
-        external
-        onlySigner(msg.sender)
-    {
-        if (s_nullifiers[proof.nullifier][recipient]) {
+    function registerWithProof(Proof calldata proof, address recipient) external onlySigner(msg.sender) {
+        uint256 nullifier = _getNullifierFromProof(proof);
+
+        if (s_nullifiers[nullifier][recipient]) {
             revert ProofOfPassportRegister__ProofAlreadyRegistered();
         }
 
-        _performProofsChecks(proof, signatureAlgorithm);
+        _performProofsChecks(proof);
 
-        s_nullifiers[proof.nullifier][recipient] = true;
+        s_nullifiers[nullifier][recipient] = true;
 
-        emit RecipientRegistered(recipient, proof.nullifier);
+        emit RecipientRegistered(recipient, nullifier);
     }
 
     /**
      * @notice Validates a proof
      * @param proof The proof to validate
-     * @param signatureAlgorithm The signature algorithm used to sign the proof
      * @param recipient The recipient to validate
      * @return true if the proof is valid
      * @dev This function will first check if the nullifier exists and then perform the proof checks
      */
-    function validateProof(Proof calldata proof, uint256 signatureAlgorithm, address recipient)
-        external
-        view
-        returns (bool)
-    {
-        if (s_nullifiers[proof.nullifier][recipient] == false) {
+    function validateProof(Proof calldata proof, address recipient) external view returns (bool) {
+        uint256 nullifier = _getNullifierFromProof(proof);
+
+        if (s_nullifiers[nullifier][recipient] == false) {
             revert ProofOfPassportRegister__NullifierDoesNotExist();
         }
 
-        _performProofsChecks(proof, signatureAlgorithm);
+        _performProofsChecks(proof);
 
         return true;
     }
@@ -205,50 +193,35 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
 
     /**
      * @notice Verifies the provided proof using the specified signature algorithm by invoking the verifier contract.
-     * @param proof The proof data containing cryptographic components (a, b, c) and commitments.
-     * @param signatureAlgorithm The signature algorithm used to verify the proof.
+     * @param proof The proof data containing cryptographic components (a, b, c) and public signals.
      * @return bool Returns `true` if the proof is valid, `false` otherwise.
      * @notice This function performs the following:
      *         - Retrieves the verifier contract for the provided `signatureAlgorithm`.
-     *         - Calls the verifier contract's `verifyProof` function, passing the proof's cryptographic components and
-     *           commitments (blinded DSC commitment, nullifier, commitment, and attestation ID).
+     *         - Calls the verifier contract's `verifyProof` function, passing the proof's cryptographic components
      * @dev Reverts if the verifier contract is not set for the specified `signatureAlgorithm`.
      */
-    function _verifyProof(Proof calldata proof, uint256 signatureAlgorithm) internal view returns (bool) {
-        return IVerifier(s_verifiers[signatureAlgorithm]).verifyProof(
-            proof.a,
-            proof.b,
-            proof.c,
-            [
-                uint256(proof.blinded_dsc_commitment),
-                uint256(proof.nullifier),
-                uint256(proof.commitment),
-                uint256(proof.attestation_id)
-            ]
-        );
+    function _verifyProof(Proof calldata proof) internal view returns (bool) {
+        uint256 signatureAlgorithm = _getSignatureAlgorithmFromProof(proof);
+
+        return IVerifier(s_verifiers[signatureAlgorithm]).verifyProof(proof.a, proof.b, proof.c, proof.pubSignals);
     }
 
     /**
-     * @notice Performs various checks on the provided proof and CSCA (Card Security Certificate Authority) proof to ensure
-     *      their validity and compatibility with the system's requirements.
+     * @notice Performs various checks on the provided proof to ensure
+     *      its validity and compatibility with the system's requirements.
      * @param proof The proof data containing attestation information to verify.
-     * @param signatureAlgorithm The signature algorithm used for verifying the attestation proof.
      * @dev This function verifies the following conditions:
      *         - The provided `signatureAlgorithm` is supported by the system.
-     *         - The provided `signatureAlgorithmCsca` is supported for CSCA verification.
-     *         - The `attestation_id` in the proof matches the expected attestation ID.
      *         - The `proof` provided is valid and verifiable using the specified `signatureAlgorithm`.
      */
-    function _performProofsChecks(Proof calldata proof, uint256 signatureAlgorithm) internal view {
+    function _performProofsChecks(Proof calldata proof) internal view {
+        uint256 signatureAlgorithm = _getSignatureAlgorithmFromProof(proof);
+
         if (s_verifiers[signatureAlgorithm] == address(0)) {
             revert ProofOfPassportRegister__UnsupportedSignatureAlgorithm();
         }
 
-        if (proof.attestation_id != i_attestationId) {
-            revert ProofOfPassportRegister__InvalidAttestationId();
-        }
-
-        if (!_verifyProof(proof, signatureAlgorithm)) {
+        if (!_verifyProof(proof)) {
             revert ProofOfPassportRegister__InvalidProof();
         }
     }
@@ -274,12 +247,26 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
     }
 
     /**
-     * Getter Functions
+     * @param proof The proof used to return the nullifier
+     * @notice The nullifier is the fourth element of the pubSignals array
+     * @return nullifier The nullifier of the proof
      */
-    function getAttestationId() public view returns (uint256) {
-        return i_attestationId;
+    function _getNullifierFromProof(Proof calldata proof) internal pure returns (uint256) {
+        return proof.pubSignals[4];
     }
 
+    /**
+     * @param proof The proof used to return the signature algorithm
+     * @notice The signature algorithm is the first element of the pubSignals array
+     * @return signatureAlgorithm The signature algorithm of the proof
+     */
+    function _getSignatureAlgorithmFromProof(Proof calldata proof) internal pure returns (uint256) {
+        return proof.pubSignals[0];
+    }
+
+    /**
+     * Getter Functions
+     */
     function isRegistered(uint256 nullifier, address recipient) public view returns (bool) {
         return s_nullifiers[nullifier][recipient];
     }

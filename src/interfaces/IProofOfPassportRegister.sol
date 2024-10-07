@@ -34,10 +34,7 @@ interface IProofOfPassportRegister {
         uint256[2] a;
         uint256[2][2] b;
         uint256[2] c;
-        uint256 blinded_dsc_commitment;
-        uint256 nullifier;
-        uint256 commitment;
-        uint256 attestation_id;
+        uint256[45] pubSignals;
     }
 
     /**
@@ -56,12 +53,9 @@ interface IProofOfPassportRegister {
     /**
      * Functions
      */
-    function registerWithProof(Proof calldata proof, uint256 signatureAlgorithm, address recipient) external;
+    function registerWithProof(Proof calldata proof, address recipient) external;
 
-    function validateProof(Proof calldata proof, uint256 signatureAlgorithm, address recipient)
-        external
-        view
-        returns (bool);
+    function validateProof(Proof calldata proof, address recipient) external view returns (bool);
 
     function setVerifier(uint256 signatureAlgorithm, address verifier) external;
 
@@ -70,8 +64,6 @@ interface IProofOfPassportRegister {
     function removeVerifier(uint256 signatureAlgorithm) external;
 
     function removeSigner(address signer) external;
-
-    function getAttestationId() external view returns (uint256);
 
     function isRegistered(uint256 nullifier, address recipient) external view returns (bool);
 

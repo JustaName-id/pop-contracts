@@ -2,16 +2,12 @@
 pragma solidity ^0.8.20;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Verifier_register_sha256WithRSAEncryption_65537} from
-    "../src/verifiers/register/Verifier_register_sha256WithRSAEncryption_65537.sol";
+import {VerifierProveRSA65537SHA256} from "../src/verifiers/prove/Verifier_prove_rsa_65537_sha256.sol";
 
 abstract contract CodeConstants {
     uint256 public constant MAINNET_ETH_CHAIN_ID = 1;
     uint256 public constant ETH_SEPOLIA_CHAIN_ID = 11155111;
     uint256 public constant LOCAL_CHAIN_ID = 31337;
-
-    uint256 public constant ATTESTATION_ID =
-        8518753152044246090169372947057357973469996808638122125210848696986717482788;
 
     uint256 public constant SIGNATURE_ALGORITHM = 1;
 
@@ -30,7 +26,6 @@ contract HelperConfig is CodeConstants, Script {
     error HelperConfig__InvalidChainId();
 
     struct NetworkConfig {
-        uint256 attestationId;
         uint256[] signatureAlgorithms;
         address[] verifiers;
         address[] signers;
@@ -73,14 +68,12 @@ contract HelperConfig is CodeConstants, Script {
 
         // Deploy the verifier contract
         vm.startBroadcast();
-        Verifier_register_sha256WithRSAEncryption_65537 sha256WithRSAEncryption =
-            new Verifier_register_sha256WithRSAEncryption_65537();
+        VerifierProveRSA65537SHA256 verifier = new VerifierProveRSA65537SHA256();
         vm.stopBroadcast();
 
-        initialVerifiers.push(address(sha256WithRSAEncryption));
+        initialVerifiers.push(address(verifier));
 
         networkConfig = NetworkConfig({
-            attestationId: ATTESTATION_ID,
             signatureAlgorithms: initialSignatureAlgorithms,
             verifiers: initialVerifiers,
             signers: initialSigners,
