@@ -2,29 +2,25 @@
 pragma solidity ^0.8.20;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Verifier_register_sha256WithRSAEncryption_65537} from
-    "../src/verifiers/register/Verifier_register_sha256WithRSAEncryption_65537.sol";
-import {Verifier_dsc_sha256_rsa_2048} from "../src/verifiers/dsc/Verifier_dsc_sha256_rsa_2048.sol";
+import {VerifierProveRSA65537SHA256} from "../src/verifiers/prove/Verifier_prove_rsa_65537_sha256.sol";
 
 abstract contract CodeConstants {
     uint256 public constant MAINNET_ETH_CHAIN_ID = 1;
     uint256 public constant ETH_SEPOLIA_CHAIN_ID = 11155111;
     uint256 public constant LOCAL_CHAIN_ID = 31337;
 
-    uint256 public constant ATTESTATION_ID =
-        8518753152044246090169372947057357973469996808638122125210848696986717482788;
-    uint256 public constant MERKLE_ROOT = 16265790307011125658362292627401518982983756210990787658744129014512572229764;
+    uint256 public constant SIGNATURE_ALGORITHM = 0;
 
-    uint256 public constant SIGNATURE_ALGORITHM = 1;
-    uint256 public constant CSCA_SIGNATURE_ALGORITHM = 1;
+    uint256 public constant NULLIFIER_INDEX_IN_PUB_SIGNAL = 4;
+
+    uint256 public constant SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS = 0;
 
     uint256 public constant NULLIFIER = uint256(0);
 
     uint256[] public initialSignatureAlgorithms;
-    address[] public initialVerifiers;
-    uint256[] public initialCSCASignatureAlgorithms;
-    address[] public initialCSCAVerifiers;
 
+    address[] public initialVerifiers;
+    uint256[] public initialNullifiersIndexesInPubSigArray;
     address[] public initialSigners;
 
     uint256 public DEFAULT_ANVIL_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
@@ -35,12 +31,9 @@ contract HelperConfig is CodeConstants, Script {
     error HelperConfig__InvalidChainId();
 
     struct NetworkConfig {
-        uint256 attestationId;
-        uint256 merkleRoot;
         uint256[] signatureAlgorithms;
         address[] verifiers;
-        uint256[] cscaSignatureAlgorithms;
-        address[] cscaVerifiers;
+        uint256[] nullifiersIndexesInPubSigArray;
         address[] signers;
         uint256 deployerKey;
     }
@@ -73,30 +66,24 @@ contract HelperConfig is CodeConstants, Script {
         }
 
         initialSignatureAlgorithms.push(SIGNATURE_ALGORITHM);
-        initialCSCASignatureAlgorithms.push(CSCA_SIGNATURE_ALGORITHM);
 
         // Get Signer
         address SIGNER = makeAddr("signer");
 
         initialSigners.push(SIGNER);
+        initialNullifiersIndexesInPubSigArray.push(NULLIFIER_INDEX_IN_PUB_SIGNAL);
 
         // Deploy the verifier contract
         vm.startBroadcast();
-        Verifier_register_sha256WithRSAEncryption_65537 sha256WithRSAEncryption =
-            new Verifier_register_sha256WithRSAEncryption_65537();
-        Verifier_dsc_sha256_rsa_2048 dsc_sha256_rsa_2048 = new Verifier_dsc_sha256_rsa_2048();
+        VerifierProveRSA65537SHA256 verifier = new VerifierProveRSA65537SHA256();
         vm.stopBroadcast();
 
-        initialVerifiers.push(address(sha256WithRSAEncryption));
-        initialCSCAVerifiers.push(address(dsc_sha256_rsa_2048));
+        initialVerifiers.push(address(verifier));
 
         networkConfig = NetworkConfig({
-            attestationId: ATTESTATION_ID,
-            merkleRoot: MERKLE_ROOT,
             signatureAlgorithms: initialSignatureAlgorithms,
             verifiers: initialVerifiers,
-            cscaSignatureAlgorithms: initialCSCASignatureAlgorithms,
-            cscaVerifiers: initialCSCAVerifiers,
+            nullifiersIndexesInPubSigArray: initialNullifiersIndexesInPubSigArray,
             signers: initialSigners,
             deployerKey: DEFAULT_ANVIL_KEY
         });
