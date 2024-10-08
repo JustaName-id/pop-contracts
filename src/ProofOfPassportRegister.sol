@@ -31,10 +31,16 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
         _;
     }
 
-    constructor(uint256[] memory signatureAlgorithms, address[] memory verifiers, uint256[] memory nullifiersIndexesInPubSigArray,  address[] memory signers)
-        Ownable(msg.sender)
-    {
-        if (signatureAlgorithms.length != verifiers.length || signatureAlgorithms.length != nullifiersIndexesInPubSigArray.length) {
+    constructor(
+        uint256[] memory signatureAlgorithms,
+        address[] memory verifiers,
+        uint256[] memory nullifiersIndexesInPubSigArray,
+        address[] memory signers
+    ) Ownable(msg.sender) {
+        if (
+            signatureAlgorithms.length != verifiers.length
+                || signatureAlgorithms.length != nullifiersIndexesInPubSigArray.length
+        ) {
             revert ProofOfPassportRegister__InvalidLength();
         }
 
@@ -56,7 +62,7 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
     function registerWithProof(Proof calldata proof, address recipient) external onlySigner(msg.sender) {
         uint256 nullifier = _getNullifierFromProof(proof);
 
-        if (s_nullifiers[nullifier][recipient]) {
+        if (isRegistered(nullifier, recipient)) {
             revert ProofOfPassportRegister__ProofAlreadyRegistered();
         }
 
@@ -76,8 +82,8 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
      */
     function validateProof(Proof calldata proof, address recipient) external view returns (bool) {
         uint256 nullifier = _getNullifierFromProof(proof);
-
-        if (s_nullifiers[nullifier][recipient] == false) {
+        
+        if (isRegistered(nullifier, recipient) == false) {
             revert ProofOfPassportRegister__NullifierDoesNotExist();
         }
 
@@ -101,10 +107,9 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
     {
         _performVerifierChecks(verifier);
 
-        uint256[2] memory a = [uint256(0), uint256(0)];
-        uint256[2][2] memory b = [[uint256(0), uint256(0)], [uint256(0), uint256(0)]];
-        uint256[2] memory c = [uint256(0), uint256(0)];
-
+        uint256[2] memory a;
+        uint256[2][2] memory b;
+        uint256[2] memory c;
         uint256[45] memory pubSignals;
 
         s_nullifierIndexPerSignatureAlgorithm[signatureAlgorithm] = nullifierIndexInPubSigArray;
@@ -141,6 +146,7 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
      */
     function removeVerifier(uint256 signatureAlgorithm) public onlyOwner {
         delete s_verifiers[signatureAlgorithm];
+        delete s_nullifierIndexPerSignatureAlgorithm[signatureAlgorithm];
 
         emit VerifierRemoved(signatureAlgorithm);
     }
@@ -238,6 +244,10 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
 
     function getVerifier(uint256 signatureAlgorithm) public view returns (address) {
         return s_verifiers[signatureAlgorithm];
+    }
+
+    function getNullifierIndex(uint256 signatureAlgorithm) public view returns (uint256) {
+        return s_nullifierIndexPerSignatureAlgorithm[signatureAlgorithm];
     }
 
     function checkIfAddressIsSigner(address signer) public view returns (bool) {

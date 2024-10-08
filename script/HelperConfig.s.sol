@@ -9,9 +9,11 @@ abstract contract CodeConstants {
     uint256 public constant ETH_SEPOLIA_CHAIN_ID = 11155111;
     uint256 public constant LOCAL_CHAIN_ID = 31337;
 
-    uint256 public constant SIGNATURE_ALGORITHM = 1;
+    uint256 public constant SIGNATURE_ALGORITHM = 0;
 
     uint256 public constant NULLIFIER_INDEX_IN_PUB_SIGNAL = 4;
+
+    uint256 public constant SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS = 0;
 
     uint256 public constant NULLIFIER = uint256(0);
 

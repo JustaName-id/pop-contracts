@@ -9,387 +9,371 @@ import {DeployProofOfPassportRegister} from "../../script/DeployProofOfPassportR
 import {CodeConstants} from "../../script/HelperConfig.s.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IProofOfPassportRegister} from "../../src/interfaces/IProofOfPassportRegister.sol";
-// import {Verifier_register_sha256WithRSASSAPSS_65537} from
-//     "../../src/verifiers/register/Verifier_register_sha256WithRSASSAPSS_65537.sol";
-
-// contract TestProofOfPassportRegister is Test, Script, CodeConstants {
-//     ProofOfPassportRegister public proofOfPassportRegister;
-//     HelperConfig public helperConfig;
-
-//     uint256 attestationId;
-//     uint256[] signatureAlgorithms;
-//     address[] verifiers;
-//     address[] signers;
-//     IProofOfPassportRegister.Proof public proof;
-
-//     uint256 public constant SECOND_SIGNATURE_ALGORITHM = 2;
-
-//     address SIGNER = makeAddr("signer");
-
-//     event RecipientRegistered(address indexed recipient, uint256 indexed nullifier);
-
-//     event VerifierSet(uint256 indexed signature_algorithm, address indexed verifier);
-
-//     event SignerSet(address indexed signer);
-
-//     event SignerRemoved(address indexed signer);
+import {VerifierProveRSA65537SHA256} from "../../src/verifiers/prove/Verifier_prove_rsa_65537_sha256.sol";
 
-//     event VerifierRemoved(uint256 indexed signature_algorithm);
+contract TestProofOfPassportRegister is Test, Script, CodeConstants {
+    ProofOfPassportRegister public proofOfPassportRegister;
+    HelperConfig public helperConfig;
 
-//     /*//////////////////////////////////////////////////////////////
-//                                  SETUP
-//     //////////////////////////////////////////////////////////////*/
-//     function setUp() public {
-//         DeployProofOfPassportRegister deployer = new DeployProofOfPassportRegister();
-//         (proofOfPassportRegister, helperConfig) = deployer.run();
-//         HelperConfig.NetworkConfig memory config = helperConfig.getConfig();
+    uint256[] signatureAlgorithms;
+    address[] verifiers;
+    address[] signers;
+    IProofOfPassportRegister.Proof private proof;
 
-//         attestationId = config.attestationId;
-//         signatureAlgorithms = config.signatureAlgorithms;
-//         verifiers = config.verifiers;
-//         signers = config.signers;
+    uint256 public constant SECOND_SIGNATURE_ALGORITHM = 2;
 
-//         proof = IProofOfPassportRegister.Proof({
-//             a: [uint256(0), uint256(0)],
-//             b: [[uint256(0), uint256(0)], [uint256(0), uint256(0)]],
-//             c: [uint256(0), uint256(0)],
-//             blinded_dsc_commitment: uint256(0),
-//             nullifier: NULLIFIER,
-//             commitment: uint256(0),
-//             attestation_id: ATTESTATION_ID
-//         });
-
-//         vm.mockCall(
-//             verifiers[0],
-//             abi.encodeWithSelector(Verifier_register_sha256WithRSASSAPSS_65537(verifiers[0]).verifyProof.selector),
-//             abi.encode(true)
-//         );
-//     }
+    address SIGNER = makeAddr("signer");
 
-//     /*//////////////////////////////////////////////////////////////
-//                              INITIAL VALUES
-//     //////////////////////////////////////////////////////////////*/
-//     function testInitialValues() public view {
-//         uint256 actualAttestationId = proofOfPassportRegister.getAttestationId();
-//         bool isSigner = proofOfPassportRegister.checkIfAddressIsSigner(SIGNER);
-//         address verifier = proofOfPassportRegister.getVerifier(SIGNATURE_ALGORITHM);
-//         address owner = proofOfPassportRegister.owner();
+    event RecipientRegistered(address indexed recipient, uint256 indexed nullifier);
 
-//         assertEq(actualAttestationId, attestationId);
-//         assertEq(isSigner, true);
-//         if (block.chainid == LOCAL_CHAIN_ID) {
-//             assertEq(owner, DEFAULT_ANVIL_ADDRESS);
-//         }
-//         // change those to test against the deployed values
-//         assertNotEq(verifier, address(0));
-//     }
+    event VerifierSet(uint256 indexed signature_algorithm, address indexed verifier);
 
-//     /*//////////////////////////////////////////////////////////////
-//                                  SIGNER
-//     //////////////////////////////////////////////////////////////*/
-//     function testAddingNewSignerAsOwner() public {
-//         address SIGNER2 = makeAddr("signer2");
+    event SignerSet(address indexed signer);
 
-//         address owner = proofOfPassportRegister.owner();
+    event SignerRemoved(address indexed signer);
 
-//         vm.expectEmit(true, false, false, false, address(proofOfPassportRegister));
-//         emit SignerSet(SIGNER2);
+    event VerifierRemoved(uint256 indexed signature_algorithm);
 
-//         vm.prank(owner);
-//         proofOfPassportRegister.setSigner(SIGNER2);
+    /*//////////////////////////////////////////////////////////////
+                                 SETUP
+    //////////////////////////////////////////////////////////////*/
+    function setUp() public {
+        DeployProofOfPassportRegister deployer = new DeployProofOfPassportRegister();
+        (proofOfPassportRegister, helperConfig) = deployer.run();
+        HelperConfig.NetworkConfig memory config = helperConfig.getConfig();
 
-//         bool isSigner = proofOfPassportRegister.checkIfAddressIsSigner(SIGNER2);
+        signatureAlgorithms = config.signatureAlgorithms;
+        verifiers = config.verifiers;
+        signers = config.signers;
 
-//         assertEq(isSigner, true);
-//     }
+        uint256[2] memory a;
+        uint256[2][2] memory b;
+        uint256[2] memory c;
+        uint256[45] memory pubSignals;
 
-//     function testAddingNewSignerAsUserWillFail(address user) public {
-//         address SIGNER2 = makeAddr("signer2");
+        proof = IProofOfPassportRegister.Proof({a: a, b: b, c: c, pubSignals: pubSignals});
 
-//         address owner = proofOfPassportRegister.owner();
-//         // Exclude the signer from the fuzzed user addresses
-//         vm.assume(user != owner);
+        vm.mockCall(
+            verifiers[0],
+            abi.encodeWithSelector(VerifierProveRSA65537SHA256(verifiers[0]).verifyProof.selector),
+            abi.encode(true)
+        );
+    }
 
-//         vm.prank(user);
-//         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
-//         proofOfPassportRegister.setSigner(SIGNER2);
-//     }
+    /*//////////////////////////////////////////////////////////////
+                             INITIAL VALUES
+    //////////////////////////////////////////////////////////////*/
+    function testInitialValues() public view {
+        bool isSigner = proofOfPassportRegister.checkIfAddressIsSigner(SIGNER);
+        address verifier = proofOfPassportRegister.getVerifier(SIGNATURE_ALGORITHM);
+        uint256 nullifierIndex = proofOfPassportRegister.getNullifierIndex(SIGNATURE_ALGORITHM);
+        uint256 signatureAlgorithmIndexInPubSignals = proofOfPassportRegister.SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS();
+        address owner = proofOfPassportRegister.owner();
 
-//     function testAddingAddress0AsSignerWillFail() public {
-//         address owner = proofOfPassportRegister.owner();
+        assertEq(isSigner, true);
+        // change those to test against the deployed values
+        assertNotEq(verifier, address(0));
+        assertEq(nullifierIndex, NULLIFIER_INDEX_IN_PUB_SIGNAL);
+        assertEq(signatureAlgorithmIndexInPubSignals, SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS);
 
-//         vm.prank(owner);
+        if (block.chainid == LOCAL_CHAIN_ID) {
+            assertEq(owner, DEFAULT_ANVIL_ADDRESS);
+        }
+    }
 
-//         vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__ZeroAddress.selector);
-//         proofOfPassportRegister.setSigner(address(0));
-//     }
+    /*//////////////////////////////////////////////////////////////
+                                 SIGNER
+    //////////////////////////////////////////////////////////////*/
+    function testAddingNewSignerAsOwner() public {
+        address SIGNER2 = makeAddr("signer2");
 
-//     function testOwnerShouldBeAbleToRemoveSignerAndShouldEmitAnEvent() public {
-//         address owner = proofOfPassportRegister.owner();
+        address owner = proofOfPassportRegister.owner();
 
-//         vm.expectEmit(true, false, false, false, address(proofOfPassportRegister));
-//         emit SignerRemoved(SIGNER);
+        vm.expectEmit(true, false, false, false, address(proofOfPassportRegister));
+        emit SignerSet(SIGNER2);
 
-//         vm.prank(owner);
-//         proofOfPassportRegister.removeSigner(SIGNER);
+        vm.prank(owner);
+        proofOfPassportRegister.setSigner(SIGNER2);
 
-//         bool isSigner = proofOfPassportRegister.checkIfAddressIsSigner(SIGNER);
+        bool isSigner = proofOfPassportRegister.checkIfAddressIsSigner(SIGNER2);
 
-//         assertEq(isSigner, false);
-//     }
+        assertEq(isSigner, true);
+    }
 
-//     function testUserShouldNotBeAbleToRemoveSigner(address user) public {
-//         address owner = proofOfPassportRegister.owner();
-//         // Exclude the owner from the fuzzed user addresses
-//         vm.assume(user != owner);
+    function testAddingNewSignerAsUserWillFail(address user) public {
+        address SIGNER2 = makeAddr("signer2");
 
-//         vm.prank(user);
-//         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
-//         proofOfPassportRegister.removeSigner(SIGNER);
-//     }
+        address owner = proofOfPassportRegister.owner();
+        // Exclude the signer from the fuzzed user addresses
+        vm.assume(user != owner);
 
-//     /*//////////////////////////////////////////////////////////////
-//                                 VERIFIER
-//     //////////////////////////////////////////////////////////////*/
-//     function testOwnerShouldBeAbleToAddVerifierAndItShouldEmitAnEvent() public {
-//         address owner = proofOfPassportRegister.owner();
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
+        proofOfPassportRegister.setSigner(SIGNER2);
+    }
 
-//         Verifier_register_sha256WithRSASSAPSS_65537 mockVerifier = new Verifier_register_sha256WithRSASSAPSS_65537();
+    function testAddingAddress0AsSignerWillFail() public {
+        address owner = proofOfPassportRegister.owner();
 
-//         vm.expectEmit(true, true, false, false, address(proofOfPassportRegister));
-//         emit VerifierSet(SECOND_SIGNATURE_ALGORITHM, address(mockVerifier));
+        vm.prank(owner);
 
-//         vm.prank(owner);
-//         proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, address(mockVerifier));
+        vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__ZeroAddress.selector);
+        proofOfPassportRegister.setSigner(address(0));
+    }
 
-//         address verifier = proofOfPassportRegister.getVerifier(SECOND_SIGNATURE_ALGORITHM);
+    function testOwnerShouldBeAbleToRemoveSignerAndShouldEmitAnEvent() public {
+        address owner = proofOfPassportRegister.owner();
 
-//         assertEq(verifier, address(mockVerifier));
-//     }
+        vm.expectEmit(true, false, false, false, address(proofOfPassportRegister));
+        emit SignerRemoved(SIGNER);
 
-//     function testOwnerShouldNotBeAbleToAddVerifierWithAddress0() public {
-//         address owner = proofOfPassportRegister.owner();
+        vm.prank(owner);
+        proofOfPassportRegister.removeSigner(SIGNER);
 
-//         vm.prank(owner);
+        bool isSigner = proofOfPassportRegister.checkIfAddressIsSigner(SIGNER);
 
-//         vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__ZeroAddress.selector);
-//         proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, address(0));
-//     }
+        assertEq(isSigner, false);
+    }
 
-//     function testOwnerShouldNotBeAbleToAddWrongVerifierContract(address notAContract) public {
-//         // Skip test if 'notAContract' is actually a contract
-//         vm.assume(notAContract.code.length == 0);
-//         // Also, ensure it's not the zero address to avoid overlapping with other tests
-//         vm.assume(notAContract != address(0));
+    function testUserShouldNotBeAbleToRemoveSigner(address user) public {
+        address owner = proofOfPassportRegister.owner();
+        // Exclude the owner from the fuzzed user addresses
+        vm.assume(user != owner);
 
-//         address owner = proofOfPassportRegister.owner();
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
+        proofOfPassportRegister.removeSigner(SIGNER);
+    }
 
-//         vm.prank(owner);
+    // /*//////////////////////////////////////////////////////////////
+    //                             VERIFIER
+    // //////////////////////////////////////////////////////////////*/
+    function testOwnerShouldBeAbleToAddVerifierAndItShouldEmitAnEvent() public {
+        address owner = proofOfPassportRegister.owner();
 
-//         vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__NotAContract.selector);
-//         proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, notAContract);
-//     }
+        VerifierProveRSA65537SHA256 mockVerifier = new VerifierProveRSA65537SHA256();
 
-//     function testOwnerShouldNotBeAbleToAddVerifierWithInvalidVerifier() public {
-//         address owner = proofOfPassportRegister.owner();
+        vm.expectEmit(true, true, false, false, address(proofOfPassportRegister));
+        emit VerifierSet(SECOND_SIGNATURE_ALGORITHM, address(mockVerifier));
 
-//         vm.prank(owner);
+        vm.prank(owner);
+        proofOfPassportRegister.setVerifier(
+            SECOND_SIGNATURE_ALGORITHM, address(mockVerifier), NULLIFIER_INDEX_IN_PUB_SIGNAL
+        );
 
-//         vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__InvalidVerifier.selector);
-//         proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, address(proofOfPassportRegister));
-//     }
+        address verifier = proofOfPassportRegister.getVerifier(SECOND_SIGNATURE_ALGORITHM);
 
-//     function testUserShouldNotBeAbleToAddVerifier(address user) public {
-//         address owner = proofOfPassportRegister.owner();
-//         // Exclude the owner from the fuzzed user addresses
-//         vm.assume(user != owner);
+        uint256 nullifierIndex = proofOfPassportRegister.getNullifierIndex(SECOND_SIGNATURE_ALGORITHM);
 
-//         Verifier_register_sha256WithRSASSAPSS_65537 mockVerifier = new Verifier_register_sha256WithRSASSAPSS_65537();
+        assertEq(verifier, address(mockVerifier));
+        assertEq(nullifierIndex, NULLIFIER_INDEX_IN_PUB_SIGNAL);
+    }
 
-//         vm.prank(user);
-//         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
-//         proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, address(mockVerifier));
-//     }
+    function testOwnerShouldNotBeAbleToAddVerifierWithAddress0() public {
+        address owner = proofOfPassportRegister.owner();
 
-//     function testOwnerShouldBeAbleToRemoveVerifier() public {
-//         address owner = proofOfPassportRegister.owner();
+        vm.prank(owner);
 
-//         vm.prank(owner);
-//         proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM);
+        vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__ZeroAddress.selector);
+        proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, address(0), NULLIFIER_INDEX_IN_PUB_SIGNAL);
+    }
 
-//         address verifier = proofOfPassportRegister.getVerifier(SIGNATURE_ALGORITHM);
+    function testOwnerShouldNotBeAbleToAddWrongVerifierContract(address notAContract) public {
+        // Skip test if 'notAContract' is actually a contract
+        vm.assume(notAContract.code.length == 0);
+        // Also, ensure it's not the zero address to avoid overlapping with other tests
+        vm.assume(notAContract != address(0));
 
-//         assertEq(verifier, address(0));
-//     }
+        address owner = proofOfPassportRegister.owner();
 
-//     function testShouldEmitEventIfVerifierRemovedSuccesfully() public {
-//         address owner = proofOfPassportRegister.owner();
+        vm.prank(owner);
 
-//         vm.expectEmit(true, false, true, false, address(proofOfPassportRegister));
-//         emit VerifierRemoved(SIGNATURE_ALGORITHM);
+        vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__NotAContract.selector);
+        proofOfPassportRegister.setVerifier(SECOND_SIGNATURE_ALGORITHM, notAContract, NULLIFIER_INDEX_IN_PUB_SIGNAL);
+    }
 
-//         vm.prank(owner);
-//         proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM);
-//     }
+    function testOwnerShouldNotBeAbleToAddInvalidVerifier() public {
+        address owner = proofOfPassportRegister.owner();
 
-//     function testUserShouldNotBeAbleToRemoveVerifier(address user) public {
-//         address owner = proofOfPassportRegister.owner();
-//         // Exclude the owner from the fuzzed user addresses
-//         vm.assume(user != owner);
+        vm.prank(owner);
 
-//         vm.prank(user);
-//         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
-//         proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM);
-//     }
+        vm.expectRevert(IProofOfPassportRegister.ProofOfPassportRegister__InvalidVerifier.selector);
+        proofOfPassportRegister.setVerifier(
+            SECOND_SIGNATURE_ALGORITHM, address(proofOfPassportRegister), NULLIFIER_INDEX_IN_PUB_SIGNAL
+        );
+    }
 
-//     /*//////////////////////////////////////////////////////////////
-//                              REGISTER WITH PROOF
-//     //////////////////////////////////////////////////////////////*/
-//     function testSignerShouldBeAbleToRegisterProofAndEmitEventCorrectly() public {
-//         address RECIPIENT = makeAddr("recipient");
+    function testUserShouldNotBeAbleToAddVerifier(address user) public {
+        address owner = proofOfPassportRegister.owner();
+        // Exclude the owner from the fuzzed user addresses
+        vm.assume(user != owner);
 
-//         vm.expectEmit(true, true, false, false, address(proofOfPassportRegister));
-//         emit RecipientRegistered(RECIPIENT, NULLIFIER);
+        VerifierProveRSA65537SHA256 mockVerifier = new VerifierProveRSA65537SHA256();
 
-//         vm.prank(SIGNER);
-//         proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
+        proofOfPassportRegister.setVerifier(
+            SECOND_SIGNATURE_ALGORITHM, address(mockVerifier), NULLIFIER_INDEX_IN_PUB_SIGNAL
+        );
+    }
 
-//         bool isRegistered = proofOfPassportRegister.isRegistered(NULLIFIER, RECIPIENT);
-//         assertEq(isRegistered, true);
-//     }
+    function testOwnerShouldBeAbleToRemoveVerifier() public {
+        address owner = proofOfPassportRegister.owner();
 
-//     function testUserShouldNotBeAbleToRegisterWithProof(address user) public {
-//         address RECIPIENT = makeAddr("recipient");
-//         // Exclude the signer from the fuzzed user addresses
-//         vm.assume(user != SIGNER);
+        vm.prank(owner);
+        proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM);
 
-//         vm.prank(user);
-//         vm.expectRevert(
-//             abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__CallerNotSigner.selector)
-//         );
-//         proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
-//     }
+        address verifier = proofOfPassportRegister.getVerifier(SIGNATURE_ALGORITHM);
 
-//     function testShouldRevertIfRegisterTwice() public {
-//         address RECIPIENT = makeAddr("recipient");
+        uint256 nullifierIndex = proofOfPassportRegister.getNullifierIndex(SIGNATURE_ALGORITHM);
 
-//         vm.prank(SIGNER);
-//         proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
+        assertEq(verifier, address(0));
+        assertEq(nullifierIndex, 0);
+    }
 
-//         vm.prank(SIGNER);
-//         vm.expectRevert(
-//             abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__ProofAlreadyRegistered.selector)
-//         );
-//         proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
-//     }
+    function testShouldEmitEventIfVerifierRemovedSuccesfully() public {
+        address owner = proofOfPassportRegister.owner();
 
-//     function testShouldRevertIfInvalidSignatureAlgorithmWhileRegistering(uint256 signatureAlgorithm) public {
-//         address RECIPIENT = makeAddr("recipient");
-//         // Exclude the valid signature algorithm from the fuzzed inputs
-//         vm.assume(signatureAlgorithm != SIGNATURE_ALGORITHM);
+        vm.expectEmit(true, false, true, false, address(proofOfPassportRegister));
+        emit VerifierRemoved(SIGNATURE_ALGORITHM);
 
-//         vm.prank(SIGNER);
-//         vm.expectRevert(
-//             abi.encodeWithSelector(
-//                 IProofOfPassportRegister.ProofOfPassportRegister__UnsupportedSignatureAlgorithm.selector
-//             )
-//         );
-//         proofOfPassportRegister.registerWithProof(proof, signatureAlgorithm, RECIPIENT);
-//     }
+        vm.prank(owner);
+        proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM);
+    }
 
-//     function testShouldRevertIfInvalidAttestationIdWhileRegistering(uint256 newAttestationId) public {
-//         address RECIPIENT = makeAddr("recipient");
+    function testUserShouldNotBeAbleToRemoveVerifier(address user) public {
+        address owner = proofOfPassportRegister.owner();
+        // Exclude the owner from the fuzzed user addresses
+        vm.assume(user != owner);
 
-//         vm.assume(newAttestationId != ATTESTATION_ID);
-//         proof.attestation_id = newAttestationId;
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
+        proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM);
+    }
 
-//         vm.prank(SIGNER);
-//         vm.expectRevert(
-//             abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidAttestationId.selector)
-//         );
-//         proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
-//     }
+    // /*//////////////////////////////////////////////////////////////
+    //                          REGISTER WITH PROOF
+    // //////////////////////////////////////////////////////////////*/
+    function testSignerShouldBeAbleToRegisterProofAndEmitEventCorrectly() public {
+        address RECIPIENT = makeAddr("recipient");
 
-//     function testShouldRevertIfInvalidProofWhileRegistering() public {
-//         address RECIPIENT = makeAddr("recipient");
+        vm.expectEmit(true, true, false, false, address(proofOfPassportRegister));
+        emit RecipientRegistered(RECIPIENT, NULLIFIER);
 
-//         vm.mockCall(
-//             verifiers[0],
-//             abi.encodeWithSelector(Verifier_register_sha256WithRSASSAPSS_65537(verifiers[0]).verifyProof.selector),
-//             abi.encode(false)
-//         );
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(proof, RECIPIENT);
 
-//         vm.prank(SIGNER);
-//         vm.expectRevert(abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidProof.selector));
-//         proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
-//     }
+        bool isRegistered = proofOfPassportRegister.isRegistered(NULLIFIER, RECIPIENT);
+        assertEq(isRegistered, true);
+    }
 
-//     /*//////////////////////////////////////////////////////////////
-//                              VALIDATE PROOF
-//     //////////////////////////////////////////////////////////////*/
-//     function testShouldValidateProofAndEmitEvent() public {
-//         address RECIPIENT = makeAddr("recipient");
+    function testUserShouldNotBeAbleToRegisterWithProof(address user) public {
+        address RECIPIENT = makeAddr("recipient");
+        // Exclude the signer from the fuzzed user addresses
+        vm.assume(user != SIGNER);
 
-//         vm.prank(SIGNER);
-//         proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
+        vm.prank(user);
+        vm.expectRevert(
+            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__CallerNotSigner.selector)
+        );
+        proofOfPassportRegister.registerWithProof(proof, RECIPIENT);
+    }
 
-//         bool isValid = proofOfPassportRegister.validateProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
+    function testShouldRevertIfRegisterTwice() public {
+        address RECIPIENT = makeAddr("recipient");
 
-//         assertEq(isValid, true);
-//     }
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(proof, RECIPIENT);
 
-//     function testShouldRevertIfNotRegisteredWhileValidating() public {
-//         address RECIPIENT = makeAddr("recipient");
+        vm.prank(SIGNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__ProofAlreadyRegistered.selector)
+        );
+        proofOfPassportRegister.registerWithProof(proof, RECIPIENT);
+    }
 
-//         vm.expectRevert(
-//             abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__NullifierDoesNotExist.selector)
-//         );
-//         proofOfPassportRegister.validateProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
-//     }
+    function testShouldRevertIfInvalidSignatureAlgorithmWhileRegistering(uint256 signatureAlgorithm) public {
+        address RECIPIENT = makeAddr("recipient");
+        proof.pubSignals[SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS] = signatureAlgorithm;
+        // Exclude the valid signature algorithm from the fuzzed inputs
+        vm.assume(signatureAlgorithm != SIGNATURE_ALGORITHM);
 
-//     function testShouldRevertIfInvalidSignatureAlgorithmWhileValidating(uint256 newSignatureAlgorithm) public {
-//         address RECIPIENT = makeAddr("recipient");
-//         vm.assume(newSignatureAlgorithm != SIGNATURE_ALGORITHM);
+        vm.prank(SIGNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IProofOfPassportRegister.ProofOfPassportRegister__UnsupportedSignatureAlgorithm.selector
+            )
+        );
+        proofOfPassportRegister.registerWithProof(proof, RECIPIENT);
+    }
 
-//         vm.prank(SIGNER);
-//         proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
+    function testShouldRevertIfInvalidProofWhileRegistering() public {
+        address RECIPIENT = makeAddr("recipient");
 
-//         vm.expectRevert(
-//             abi.encodeWithSelector(
-//                 IProofOfPassportRegister.ProofOfPassportRegister__UnsupportedSignatureAlgorithm.selector
-//             )
-//         );
-//         proofOfPassportRegister.validateProof(proof, newSignatureAlgorithm, RECIPIENT);
-//     }
+        vm.mockCall(
+            verifiers[0],
+            abi.encodeWithSelector(VerifierProveRSA65537SHA256(verifiers[0]).verifyProof.selector),
+            abi.encode(false)
+        );
 
-//     function testShouldRevertIfInvalidAttestationIdWhileValidating(uint256 newAttestationId) public {
-//         address RECIPIENT = makeAddr("recipient");
-//         vm.assume(newAttestationId != ATTESTATION_ID);
+        vm.prank(SIGNER);
+        vm.expectRevert(abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidProof.selector));
+        proofOfPassportRegister.registerWithProof(proof, RECIPIENT);
+    }
 
-//         vm.prank(SIGNER);
-//         proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
+    // /*//////////////////////////////////////////////////////////////
+    //                          VALIDATE PROOF
+    // //////////////////////////////////////////////////////////////*/
+    function testShouldValidateProofAndEmitEvent() public {
+        address RECIPIENT = makeAddr("recipient");
 
-//         proof.attestation_id = newAttestationId;
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(proof, RECIPIENT);
 
-//         vm.expectRevert(
-//             abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidAttestationId.selector)
-//         );
-//         proofOfPassportRegister.validateProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
-//     }
+        bool isValid = proofOfPassportRegister.validateProof(proof, RECIPIENT);
 
-//     function testShouldRevertIfInvalidProofWhileValidating() public {
-//         address RECIPIENT = makeAddr("recipient");
+        assertEq(isValid, true);
+    }
 
-//         vm.prank(SIGNER);
-//         proofOfPassportRegister.registerWithProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
+    function testShouldRevertIfNotRegisteredWhileValidating() public {
+        address RECIPIENT = makeAddr("recipient");
 
-//         vm.mockCall(
-//             verifiers[0],
-//             abi.encodeWithSelector(Verifier_register_sha256WithRSASSAPSS_65537(verifiers[0]).verifyProof.selector),
-//             abi.encode(false)
-//         );
+        vm.expectRevert(
+            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__NullifierDoesNotExist.selector)
+        );
+        proofOfPassportRegister.validateProof(proof, RECIPIENT);
+    }
 
-//         vm.expectRevert(abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidProof.selector));
-//         proofOfPassportRegister.validateProof(proof, SIGNATURE_ALGORITHM, RECIPIENT);
-//     }
-// }
+    // function testShouldRevertIfInvalidSignatureAlgorithmWhileValidating(uint256 newSignatureAlgorithm) public {
+    //     address RECIPIENT = makeAddr("recipient");
+    //     vm.assume(newSignatureAlgorithm != SIGNATURE_ALGORITHM);
+
+    //     vm.prank(SIGNER);
+    //     proofOfPassportRegister.registerWithProof(proof, RECIPIENT);
+
+    //     pubSignals[SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS] = newSignatureAlgorithm;
+
+    //     vm.expectRevert(
+    //         abi.encodeWithSelector(
+    //             IProofOfPassportRegister.ProofOfPassportRegister__UnsupportedSignatureAlgorithm.selector
+    //         )
+    //     );
+    //     proofOfPassportRegister.validateProof(newProof, RECIPIENT);
+    // }
+
+    function testShouldRevertIfInvalidProofWhileValidating() public {
+        address RECIPIENT = makeAddr("recipient");
+
+        vm.prank(SIGNER);
+        proofOfPassportRegister.registerWithProof(proof, RECIPIENT);
+
+        vm.mockCall(
+            verifiers[0],
+            abi.encodeWithSelector(VerifierProveRSA65537SHA256(verifiers[0]).verifyProof.selector),
+            abi.encode(false)
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__InvalidProof.selector));
+        proofOfPassportRegister.validateProof(proof, RECIPIENT);
+    }
+}

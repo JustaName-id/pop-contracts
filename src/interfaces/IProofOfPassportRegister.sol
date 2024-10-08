@@ -67,5 +67,7 @@ interface IProofOfPassportRegister {
 
     function getVerifier(uint256 signatureAlgorithm) external view returns (address);
 
+    function getNullifierIndex(uint256 signatureAlgorithm) external view returns (uint256);
+
     function checkIfAddressIsSigner(address signer) external view returns (bool);
 }
