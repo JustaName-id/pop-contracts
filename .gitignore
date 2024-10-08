@@ -1,3 +1,6 @@
+# Coverage
+lcov.info
+
 # Compiler files
 cache/
 out/
