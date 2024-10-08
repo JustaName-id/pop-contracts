@@ -17,7 +17,8 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
     mapping(uint256 => mapping(address => bool)) private s_nullifiers;
     mapping(uint256 signatureAlgorithm => address) private s_verifiers;
     mapping(address => bool) private s_signers;
-    mapping(uint256 signatureAlgorithm => uint256 nullifierIndexInPubSignalArray) s_nullifierIndexPerSignatureAlgorithm;
+    mapping(uint256 signatureAlgorithm => uint256 nullifierIndexInPubSignalArray) private
+        s_nullifierIndexPerSignatureAlgorithm;
 
     /**
      * @param caller The caller address to check
@@ -82,7 +83,7 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
      */
     function validateProof(Proof calldata proof, address recipient) external view returns (bool) {
         uint256 nullifier = _getNullifierFromProof(proof);
-        
+
         if (isRegistered(nullifier, recipient) == false) {
             revert ProofOfPassportRegister__NullifierDoesNotExist();
         }
@@ -107,9 +108,9 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
     {
         _performVerifierChecks(verifier);
 
-        uint256[2] memory a;
-        uint256[2][2] memory b;
-        uint256[2] memory c;
+        uint256[2] memory a = [uint256(0), uint256(0)];
+        uint256[2][2] memory b = [[uint256(0), uint256(0)], [uint256(0), uint256(0)]];
+        uint256[2] memory c = [uint256(0), uint256(0)];
         uint256[45] memory pubSignals;
 
         s_nullifierIndexPerSignatureAlgorithm[signatureAlgorithm] = nullifierIndexInPubSigArray;

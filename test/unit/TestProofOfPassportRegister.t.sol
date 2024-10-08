@@ -344,23 +344,6 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         proofOfPassportRegister.validateProof(proof, RECIPIENT);
     }
 
-    // function testShouldRevertIfInvalidSignatureAlgorithmWhileValidating(uint256 newSignatureAlgorithm) public {
-    //     address RECIPIENT = makeAddr("recipient");
-    //     vm.assume(newSignatureAlgorithm != SIGNATURE_ALGORITHM);
-
-    //     vm.prank(SIGNER);
-    //     proofOfPassportRegister.registerWithProof(proof, RECIPIENT);
-
-    //     pubSignals[SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS] = newSignatureAlgorithm;
-
-    //     vm.expectRevert(
-    //         abi.encodeWithSelector(
-    //             IProofOfPassportRegister.ProofOfPassportRegister__UnsupportedSignatureAlgorithm.selector
-    //         )
-    //     );
-    //     proofOfPassportRegister.validateProof(newProof, RECIPIENT);
-    // }
-
     function testShouldRevertIfInvalidProofWhileValidating() public {
         address RECIPIENT = makeAddr("recipient");
 
