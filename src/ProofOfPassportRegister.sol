@@ -63,6 +63,10 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
     function registerWithProof(Proof calldata proof, address recipient) external onlySigner(msg.sender) {
         uint256 nullifier = _getNullifierFromProof(proof);
 
+        if (recipient == address(0)) {
+            revert ProofOfPassportRegister__ZeroAddress();
+        }
+
         if (isRegistered(nullifier, recipient)) {
             revert ProofOfPassportRegister__ProofAlreadyRegistered();
         }
@@ -83,6 +87,10 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
      */
     function validateProof(Proof calldata proof, address recipient) external view returns (bool) {
         uint256 nullifier = _getNullifierFromProof(proof);
+
+        if (recipient == address(0)) {
+            revert ProofOfPassportRegister__ZeroAddress();
+        }
 
         if (isRegistered(nullifier, recipient) == false) {
             revert ProofOfPassportRegister__NullifierDoesNotExist();
