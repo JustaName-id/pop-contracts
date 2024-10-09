@@ -53,7 +53,11 @@ contract TestRegisterFlow is Test, Script, CodeConstants {
             SIGNATURE_ALGORITHM_RSA_65537_SHA1, address(verifierProveRSA65537SHA1), NULLIFIER_INDEX_IN_PUB_SIGNAL
         );
         vm.prank(OWNER);
-        proofOfPassportRegister.setVerifier(SIGNATURE_ALGORITHM_RSA_PSS_65537_SHA256, address(verifierProveRSAPSS65537SHA256), NULLIFIER_INDEX_IN_PUB_SIGNAL);
+        proofOfPassportRegister.setVerifier(
+            SIGNATURE_ALGORITHM_RSA_PSS_65537_SHA256,
+            address(verifierProveRSAPSS65537SHA256),
+            NULLIFIER_INDEX_IN_PUB_SIGNAL
+        );
     }
 
     function testRegisterFlowSha256RSA65537(address recipient, address signer, address user) public {
@@ -122,7 +126,9 @@ contract TestRegisterFlow is Test, Script, CodeConstants {
         vm.assume(signer != user);
 
         address newSigner = makeAddr("newSigner");
-        uint256 nullifier = SHA256_RSA_PSS_65537_PROOF.pubSignals[proofOfPassportRegister.getNullifierIndex(SIGNATURE_ALGORITHM_RSA_PSS_65537_SHA256)];
+        uint256 nullifier = SHA256_RSA_PSS_65537_PROOF.pubSignals[proofOfPassportRegister.getNullifierIndex(
+            SIGNATURE_ALGORITHM_RSA_PSS_65537_SHA256
+        )];
 
         vm.expectEmit(true, false, false, false, address(proofOfPassportRegister));
         emit SignerSet(newSigner);
