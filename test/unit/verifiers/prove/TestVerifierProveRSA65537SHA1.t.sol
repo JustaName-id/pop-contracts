@@ -6,7 +6,7 @@ import {Script} from "forge-std/Script.sol";
 import {CodeConstants} from "../../../../script/HelperConfig.s.sol";
 import {VerifierProveRSA65537SHA1} from "../../../../src/verifiers/prove/Verifier_prove_rsa_65537_sha1.sol";
 
-contract TestVerifierRegisterSha165537 is Test, Script, CodeConstants {
+contract TestVerifierRegisterSHA1RSA65537 is Test, Script, CodeConstants {
     VerifierProveRSA65537SHA1 public verifier;
 
     /*//////////////////////////////////////////////////////////////

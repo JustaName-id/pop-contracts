@@ -31,7 +31,12 @@ contract TestVerifierRegisterSha256RSAPSS65537 is Test, Script, CodeConstants {
     }
 
     function testShouldReturnTrueWhenValidProof() public view {
-        bool isVerified = verifier.verifyProof(SHA256_RSA_PSS_65537_PROOF.a, SHA256_RSA_PSS_65537_PROOF.b, SHA256_RSA_PSS_65537_PROOF.c, SHA256_RSA_PSS_65537_PROOF.pubSignals);
+        bool isVerified = verifier.verifyProof(
+            SHA256_RSA_PSS_65537_PROOF.a,
+            SHA256_RSA_PSS_65537_PROOF.b,
+            SHA256_RSA_PSS_65537_PROOF.c,
+            SHA256_RSA_PSS_65537_PROOF.pubSignals
+        );
 
         assertEq(isVerified, true);
     }

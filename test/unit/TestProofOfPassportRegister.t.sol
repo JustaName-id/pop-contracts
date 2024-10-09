@@ -53,7 +53,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         proof = IProofOfPassportRegister.Proof({a: a, b: b, c: c, pubSignals: pubSignals});
         proof.pubSignals[SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS] = SIGNATURE_ALGORITHM_RSA_65537_SHA256;
-        
+
         vm.mockCall(
             verifiers[0],
             abi.encodeWithSelector(VerifierProveRSA65537SHA256(verifiers[0]).verifyProof.selector),
@@ -272,9 +272,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         address RECIPIENT = address(0);
 
         vm.prank(SIGNER);
-        vm.expectRevert(
-            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__ZeroAddress.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__ZeroAddress.selector));
         proofOfPassportRegister.registerWithProof(proof, RECIPIENT);
     }
 
@@ -349,9 +347,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
     function testShouldRevertIfZeroAddressWhileValidating() public {
         address RECIPIENT = address(0);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__ZeroAddress.selector)
-        );
+        vm.expectRevert(abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__ZeroAddress.selector));
         proofOfPassportRegister.validateProof(proof, RECIPIENT);
     }
 
