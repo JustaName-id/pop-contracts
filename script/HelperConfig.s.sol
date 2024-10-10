@@ -3,22 +3,22 @@ pragma solidity ^0.8.20;
 
 import {Script, console} from "forge-std/Script.sol";
 import {VerifierProveRSA65537SHA256} from "../src/verifiers/prove/Verifier_prove_rsa_65537_sha256.sol";
+import {IProofOfPassportRegister} from "../src/interfaces/IProofOfPassportRegister.sol";
 
 abstract contract CodeConstants {
     uint256 public constant MAINNET_ETH_CHAIN_ID = 1;
     uint256 public constant ETH_SEPOLIA_CHAIN_ID = 11155111;
     uint256 public constant LOCAL_CHAIN_ID = 31337;
 
-    uint256 public constant SIGNATURE_ALGORITHM = 0;
+    uint256 public constant SIGNATURE_ALGORITHM_RSA_65537_SHA256 = 1;
+    uint256 public constant SIGNATURE_ALGORITHM_RSA_65537_SHA1 = 3;
+    uint256 public constant SIGNATURE_ALGORITHM_RSA_PSS_65537_SHA256 = 4;
 
     uint256 public constant NULLIFIER_INDEX_IN_PUB_SIGNAL = 4;
 
     uint256 public constant SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS = 0;
 
-    uint256 public constant NULLIFIER = uint256(0);
-
     uint256[] public initialSignatureAlgorithms;
-
     address[] public initialVerifiers;
     uint256[] public initialNullifiersIndexesInPubSigArray;
     address[] public initialSigners;
@@ -65,7 +65,7 @@ contract HelperConfig is CodeConstants, Script {
             return networkConfig;
         }
 
-        initialSignatureAlgorithms.push(SIGNATURE_ALGORITHM);
+        initialSignatureAlgorithms.push(SIGNATURE_ALGORITHM_RSA_65537_SHA256);
 
         // Get Signer
         address SIGNER = makeAddr("signer");
@@ -75,10 +75,10 @@ contract HelperConfig is CodeConstants, Script {
 
         // Deploy the verifier contract
         vm.startBroadcast();
-        VerifierProveRSA65537SHA256 verifier = new VerifierProveRSA65537SHA256();
+        VerifierProveRSA65537SHA256 verifierProveRSA65537SHA256 = new VerifierProveRSA65537SHA256();
         vm.stopBroadcast();
 
-        initialVerifiers.push(address(verifier));
+        initialVerifiers.push(address(verifierProveRSA65537SHA256));
 
         networkConfig = NetworkConfig({
             signatureAlgorithms: initialSignatureAlgorithms,

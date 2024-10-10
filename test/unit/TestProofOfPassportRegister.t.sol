@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Test, console} from "forge-std/Test.sol";
 import {Script} from "forge-std/Script.sol";
+import {Test, console} from "forge-std/Test.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ProofOfPassportRegister} from "../../src/ProofOfPassportRegister.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {DeployProofOfPassportRegister} from "../../script/DeployProofOfPassportRegister.s.sol";
 import {CodeConstants} from "../../script/HelperConfig.s.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IProofOfPassportRegister} from "../../src/interfaces/IProofOfPassportRegister.sol";
 import {VerifierProveRSA65537SHA256} from "../../src/verifiers/prove/Verifier_prove_rsa_65537_sha256.sol";
 
@@ -21,6 +21,8 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
     IProofOfPassportRegister.Proof private proof;
 
     uint256 public constant SECOND_SIGNATURE_ALGORITHM = 2;
+
+    uint256 public constant NULLIFIER = uint256(0);
 
     address SIGNER = makeAddr("signer");
 
@@ -52,6 +54,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         uint256[45] memory pubSignals;
 
         proof = IProofOfPassportRegister.Proof({a: a, b: b, c: c, pubSignals: pubSignals});
+        proof.pubSignals[SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS] = SIGNATURE_ALGORITHM_RSA_65537_SHA256;
 
         vm.mockCall(
             verifiers[0],
@@ -65,8 +68,8 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
     //////////////////////////////////////////////////////////////*/
     function testInitialValues() public view {
         bool isSigner = proofOfPassportRegister.checkIfAddressIsSigner(SIGNER);
-        address verifier = proofOfPassportRegister.getVerifier(SIGNATURE_ALGORITHM);
-        uint256 nullifierIndex = proofOfPassportRegister.getNullifierIndex(SIGNATURE_ALGORITHM);
+        address verifier = proofOfPassportRegister.getVerifier(SIGNATURE_ALGORITHM_RSA_65537_SHA256);
+        uint256 nullifierIndex = proofOfPassportRegister.getNullifierIndex(SIGNATURE_ALGORITHM_RSA_65537_SHA256);
         uint256 signatureAlgorithmIndexInPubSignals = proofOfPassportRegister.SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS();
         address owner = proofOfPassportRegister.owner();
 
@@ -221,11 +224,11 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         address owner = proofOfPassportRegister.owner();
 
         vm.prank(owner);
-        proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM);
+        proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM_RSA_65537_SHA256);
 
-        address verifier = proofOfPassportRegister.getVerifier(SIGNATURE_ALGORITHM);
+        address verifier = proofOfPassportRegister.getVerifier(SIGNATURE_ALGORITHM_RSA_65537_SHA256);
 
-        uint256 nullifierIndex = proofOfPassportRegister.getNullifierIndex(SIGNATURE_ALGORITHM);
+        uint256 nullifierIndex = proofOfPassportRegister.getNullifierIndex(SIGNATURE_ALGORITHM_RSA_65537_SHA256);
 
         assertEq(verifier, address(0));
         assertEq(nullifierIndex, 0);
@@ -235,10 +238,10 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         address owner = proofOfPassportRegister.owner();
 
         vm.expectEmit(true, false, true, false, address(proofOfPassportRegister));
-        emit VerifierRemoved(SIGNATURE_ALGORITHM);
+        emit VerifierRemoved(SIGNATURE_ALGORITHM_RSA_65537_SHA256);
 
         vm.prank(owner);
-        proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM);
+        proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM_RSA_65537_SHA256);
     }
 
     function testUserShouldNotBeAbleToRemoveVerifier(address user) public {
@@ -248,7 +251,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         vm.prank(user);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
-        proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM);
+        proofOfPassportRegister.removeVerifier(SIGNATURE_ALGORITHM_RSA_65537_SHA256);
     }
 
     // /*//////////////////////////////////////////////////////////////
@@ -265,6 +268,14 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
         bool isRegistered = proofOfPassportRegister.isRegistered(NULLIFIER, RECIPIENT);
         assertEq(isRegistered, true);
+    }
+
+    function testShouldRevertIfZeroAddressWhileRegistering() public {
+        address RECIPIENT = address(0);
+
+        vm.prank(SIGNER);
+        vm.expectRevert(abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__ZeroAddress.selector));
+        proofOfPassportRegister.registerWithProof(proof, RECIPIENT);
     }
 
     function testUserShouldNotBeAbleToRegisterWithProof(address user) public {
@@ -296,7 +307,7 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         address RECIPIENT = makeAddr("recipient");
         proof.pubSignals[SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS] = signatureAlgorithm;
         // Exclude the valid signature algorithm from the fuzzed inputs
-        vm.assume(signatureAlgorithm != SIGNATURE_ALGORITHM);
+        vm.assume(signatureAlgorithm != SIGNATURE_ALGORITHM_RSA_65537_SHA256);
 
         vm.prank(SIGNER);
         vm.expectRevert(
@@ -333,6 +344,13 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         bool isValid = proofOfPassportRegister.validateProof(proof, RECIPIENT);
 
         assertEq(isValid, true);
+    }
+
+    function testShouldRevertIfZeroAddressWhileValidating() public {
+        address RECIPIENT = address(0);
+
+        vm.expectRevert(abi.encodeWithSelector(IProofOfPassportRegister.ProofOfPassportRegister__ZeroAddress.selector));
+        proofOfPassportRegister.validateProof(proof, RECIPIENT);
     }
 
     function testShouldRevertIfNotRegisteredWhileValidating() public {
