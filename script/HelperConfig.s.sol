@@ -18,8 +18,6 @@ abstract contract CodeConstants {
 
     uint256 public constant SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS = 0;
 
-    uint256 public constant NULLIFIER = uint256(0);
-
     uint256[] public initialSignatureAlgorithms;
     address[] public initialVerifiers;
     uint256[] public initialNullifiersIndexesInPubSigArray;

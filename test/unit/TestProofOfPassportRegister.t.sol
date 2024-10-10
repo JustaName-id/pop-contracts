@@ -22,6 +22,8 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
 
     uint256 public constant SECOND_SIGNATURE_ALGORITHM = 2;
 
+    uint256 public constant NULLIFIER = uint256(0);
+
     address SIGNER = makeAddr("signer");
 
     event RecipientRegistered(address indexed recipient, uint256 indexed nullifier);
