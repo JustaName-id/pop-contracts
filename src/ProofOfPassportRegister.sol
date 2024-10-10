@@ -107,7 +107,7 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
      * @param verifier The new verifier address to set
      * @param nullifierIndexInPubSigArray The index of the nullifier in the pubSignals array
      * @dev This function is used to set a new verifier address.
-     *      It will check if the verifier address by first calling the _performVerifierChecks function.
+     *      It will check if the verifier address is valid by first calling the _performVerifierChecks function.
      *      It will also check if the verifier address is valid by calling the verifyProof function of the verifier contract
      */
     function setVerifier(uint256 signatureAlgorithm, address verifier, uint256 nullifierIndexInPubSigArray)
@@ -210,7 +210,7 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
      * @param verifierAddress The verifier address to check
      * @notice Meant to check if the verifier address is valid. It shouldn't be a zero address and should be a contract address.
      * @dev This function is used to check if the verifier address is valid.
-     *         It is meant to be used in the setVerifier and setCSCAVerifier functions
+     *         It is meant to be used in the setVerifier functions
      */
     function _performVerifierChecks(address verifierAddress) internal view {
         if (verifierAddress == address(0)) {
@@ -228,7 +228,7 @@ contract ProofOfPassportRegister is IProofOfPassportRegister, Ownable {
 
     /**
      * @param proof The proof used to return the nullifier
-     * @notice The nullifier is the fourth element of the pubSignals array
+     * @notice The nullifier index is defined in the s_nullifierIndexPerSignatureAlgorithm mapping
      * @return nullifier The nullifier of the proof
      */
     function _getNullifierFromProof(Proof calldata proof) internal view returns (uint256) {
