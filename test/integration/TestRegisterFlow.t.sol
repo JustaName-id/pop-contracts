@@ -8,10 +8,11 @@ import {ProofOfPassportRegister} from "../../src/ProofOfPassportRegister.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {DeployProofOfPassportRegister} from "../../script/DeployProofOfPassportRegister.s.sol";
 import {CodeConstants} from "../../script/HelperConfig.s.sol";
+import {TestCodeConstants} from "../../script/TestHelperConfig.s.sol";
 import {VerifierProveRSA65537SHA1} from "../../src/verifiers/prove/Verifier_prove_rsa_65537_sha1.sol";
 import {VerifierProveRSAPSS65537SHA256} from "../../src/verifiers/prove/Verifier_prove_rsapss_65537_sha256.sol";
 
-contract TestRegisterFlow is Test, Script, CodeConstants {
+contract TestRegisterFlow is Test, Script, CodeConstants, TestCodeConstants {
     ProofOfPassportRegister public proofOfPassportRegister;
     HelperConfig public helperConfig;
 
@@ -44,31 +45,28 @@ contract TestRegisterFlow is Test, Script, CodeConstants {
 
         OWNER = proofOfPassportRegister.owner();
 
-        // Add missing verifiers
+        vm.startBroadcast();
         verifierProveRSA65537SHA1 = new VerifierProveRSA65537SHA1();
         verifierProveRSAPSS65537SHA256 = new VerifierProveRSAPSS65537SHA256();
+        vm.stopBroadcast();
+    }
 
-        vm.prank(OWNER);
+    function testRegisterFlowSha256RSA65537(address signer, address user) public {
+        vm.assume(user != OWNER);
+        vm.assume(signer != user);
+
+        vm.startPrank(OWNER);
         proofOfPassportRegister.setVerifier(
             SIGNATURE_ALGORITHM_RSA_65537_SHA1, address(verifierProveRSA65537SHA1), NULLIFIER_INDEX_IN_PUB_SIGNAL
         );
-        vm.prank(OWNER);
         proofOfPassportRegister.setVerifier(
             SIGNATURE_ALGORITHM_RSA_PSS_65537_SHA256,
             address(verifierProveRSAPSS65537SHA256),
             NULLIFIER_INDEX_IN_PUB_SIGNAL
         );
-    }
-
-    function testRegisterFlowSha256RSA65537(address recipient, address signer, address user) public {
-        vm.assume(recipient != address(0));
-        vm.assume(user != OWNER);
-        vm.assume(signer != user);
+        vm.stopPrank();
 
         address newSigner = makeAddr("newSigner");
-        uint256 nullifier = SHA256_RSA_65537_PROOF.pubSignals[proofOfPassportRegister.getNullifierIndex(
-            SIGNATURE_ALGORITHM_RSA_65537_SHA256
-        )];
 
         vm.expectEmit(true, false, false, false, address(proofOfPassportRegister));
         emit SignerSet(newSigner);
@@ -79,74 +77,55 @@ contract TestRegisterFlow is Test, Script, CodeConstants {
         bool isNewSigner = proofOfPassportRegister.checkIfAddressIsSigner(newSigner);
         assertTrue(isNewSigner);
 
-        vm.expectEmit(true, true, false, false, address(proofOfPassportRegister));
-        emit RecipientRegistered(recipient, nullifier);
-
-        vm.prank(newSigner);
-        proofOfPassportRegister.registerWithProof(SHA256_RSA_65537_PROOF, recipient);
-
-        vm.prank(user);
-        bool isValid = proofOfPassportRegister.validateProof(SHA256_RSA_65537_PROOF, recipient);
-        assertTrue(isValid);
-    }
-
-    function testRegisterFlowSha1RSA65537(address recipient, address signer, address user) public {
-        vm.assume(recipient != address(0));
-        vm.assume(user != OWNER);
-        vm.assume(signer != user);
-
-        address newSigner = makeAddr("newSigner");
-        uint256 nullifier = SHA1_RSA_65537_PROOF.pubSignals[proofOfPassportRegister.getNullifierIndex(
-            SIGNATURE_ALGORITHM_RSA_65537_SHA1
-        )];
-
-        vm.expectEmit(true, false, false, false, address(proofOfPassportRegister));
-        emit SignerSet(newSigner);
-
-        vm.prank(OWNER);
-        proofOfPassportRegister.setSigner(newSigner);
-
-        bool isNewSigner = proofOfPassportRegister.checkIfAddressIsSigner(newSigner);
-        assertTrue(isNewSigner);
+        address recipient1 = makeAddr("recipient1");
 
         vm.expectEmit(true, true, false, false, address(proofOfPassportRegister));
-        emit RecipientRegistered(recipient, nullifier);
+        emit RecipientRegistered(
+            recipient1,
+            SHA256_RSA_65537_PROOF.pubSignals[proofOfPassportRegister.getNullifierIndex(
+                SIGNATURE_ALGORITHM_RSA_65537_SHA256
+            )]
+        );
 
         vm.prank(newSigner);
-        proofOfPassportRegister.registerWithProof(SHA1_RSA_65537_PROOF, recipient);
+        proofOfPassportRegister.registerWithProof(SHA256_RSA_65537_PROOF, recipient1);
 
         vm.prank(user);
-        bool isValid = proofOfPassportRegister.validateProof(SHA1_RSA_65537_PROOF, recipient);
-        assertTrue(isValid);
-    }
+        bool isValidRSA65537SHA256 = proofOfPassportRegister.validateProof(SHA256_RSA_65537_PROOF, recipient1);
+        assertTrue(isValidRSA65537SHA256);
 
-    function testRegisterFlowSha256RSAPSS65537(address recipient, address signer, address user) public {
-        vm.assume(recipient != address(0));
-        vm.assume(user != OWNER);
-        vm.assume(signer != user);
-
-        address newSigner = makeAddr("newSigner");
-        uint256 nullifier = SHA256_RSA_PSS_65537_PROOF.pubSignals[proofOfPassportRegister.getNullifierIndex(
-            SIGNATURE_ALGORITHM_RSA_PSS_65537_SHA256
-        )];
-
-        vm.expectEmit(true, false, false, false, address(proofOfPassportRegister));
-        emit SignerSet(newSigner);
-
-        vm.prank(OWNER);
-        proofOfPassportRegister.setSigner(newSigner);
-
-        bool isNewSigner = proofOfPassportRegister.checkIfAddressIsSigner(newSigner);
-        assertTrue(isNewSigner);
+        address recipient2 = makeAddr("recipient2");
 
         vm.expectEmit(true, true, false, false, address(proofOfPassportRegister));
-        emit RecipientRegistered(recipient, nullifier);
+        emit RecipientRegistered(
+            recipient2,
+            SHA1_RSA_65537_PROOF.pubSignals[proofOfPassportRegister.getNullifierIndex(
+                SIGNATURE_ALGORITHM_RSA_65537_SHA1
+            )]
+        );
 
         vm.prank(newSigner);
-        proofOfPassportRegister.registerWithProof(SHA256_RSA_PSS_65537_PROOF, recipient);
+        proofOfPassportRegister.registerWithProof(SHA1_RSA_65537_PROOF, recipient2);
 
         vm.prank(user);
-        bool isValid = proofOfPassportRegister.validateProof(SHA256_RSA_PSS_65537_PROOF, recipient);
-        assertTrue(isValid);
+        bool isValidRSA65537SHA1 = proofOfPassportRegister.validateProof(SHA1_RSA_65537_PROOF, recipient2);
+        assertTrue(isValidRSA65537SHA1);
+
+        address recipient3 = makeAddr("recipient3");
+
+        vm.expectEmit(true, true, false, false, address(proofOfPassportRegister));
+        emit RecipientRegistered(
+            recipient3,
+            SHA256_RSA_PSS_65537_PROOF.pubSignals[proofOfPassportRegister.getNullifierIndex(
+                SIGNATURE_ALGORITHM_RSA_PSS_65537_SHA256
+            )]
+        );
+
+        vm.prank(newSigner);
+        proofOfPassportRegister.registerWithProof(SHA256_RSA_PSS_65537_PROOF, recipient3);
+
+        vm.prank(user);
+        bool isValidRSAPSS65537SHA256 = proofOfPassportRegister.validateProof(SHA256_RSA_PSS_65537_PROOF, recipient3);
+        assertTrue(isValidRSAPSS65537SHA256);
     }
 }
