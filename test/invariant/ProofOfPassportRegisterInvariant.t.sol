@@ -75,4 +75,13 @@ contract ProofOfPassportRegisterInvariant is StdInvariant, Test, CodeConstants, 
         }
         console.log("Invariant test completed");
     }
+
+    function invariant_getterFunctionsShouldNeverRevert() public view {
+        uint256 signatureAlgorithm = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender)));
+        address randomAddress = address(uint160(signatureAlgorithm));
+        
+        proofOfPassportRegister.getVerifier(signatureAlgorithm);
+        proofOfPassportRegister.getNullifierIndex(signatureAlgorithm);
+        proofOfPassportRegister.checkIfAddressIsSigner(randomAddress);
+    }
 }

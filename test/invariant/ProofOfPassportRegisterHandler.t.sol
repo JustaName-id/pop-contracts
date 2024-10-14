@@ -4,19 +4,24 @@ pragma solidity ^0.8.20;
 import {Test, console} from "forge-std/Test.sol";
 import {TestCodeConstants} from "../../script/TestHelperConfig.s.sol";
 import {CodeConstants} from "../../script/HelperConfig.s.sol";
+import {ProofOfPassportRegister} from "../../src/ProofOfPassportRegister.sol";
 import {IProofOfPassportRegister} from "../../src/interfaces/IProofOfPassportRegister.sol";
+import {VerifierProveRSA65537SHA256} from "../../src/verifiers/prove/Verifier_prove_rsa_65537_sha256.sol";
 
 contract ProofOfPassportRegisterHandler is Test, TestCodeConstants, CodeConstants {
-    IProofOfPassportRegister s_register;
+    ProofOfPassportRegister s_register;
     address[][] private registeredAddresses;
 
-    constructor(IProofOfPassportRegister _register) {
+    constructor(ProofOfPassportRegister _register) {
         s_register = _register;
         registeredAddresses = new address[][](5);
     }
 
     function registerProof(address recipient, uint256 _signatureAlgorithm) public {
-        vm.assume(recipient != address(0));
+        if (recipient == address(0)) {
+            return;
+        }
+
         console.log("registerProof called with recipient: %s, _signatureAlgorithm: %d", recipient, _signatureAlgorithm);
 
         uint256 signatureAlgorithm = _getSignatureAlgorithm(_signatureAlgorithm);
@@ -29,6 +34,28 @@ contract ProofOfPassportRegisterHandler is Test, TestCodeConstants, CodeConstant
         if (!s_register.isRegistered(nullifier, recipient)) {
             s_register.registerWithProof(proof, recipient);
             registeredAddresses[signatureAlgorithm].push(recipient);
+        }
+    }
+
+    function setSigner(address _signer) public {
+        if (_signer == address(0)) {
+            return;
+        }
+
+        address owner = s_register.owner();
+
+        vm.prank(owner);
+        s_register.setSigner(_signer);
+    }
+
+    function removeSigner(address _signer) public {
+        bool isSigner = s_register.checkIfAddressIsSigner(_signer);
+
+        if (isSigner) {
+            address owner = s_register.owner();
+
+            vm.prank(owner);
+            s_register.removeSigner(_signer);
         }
     }
 
