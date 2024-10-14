@@ -59,29 +59,25 @@ contract ProofOfPassportRegisterInvariant is StdInvariant, Test, CodeConstants, 
     }
 
     function invariant_onlyRegisteredAddressesAreValid() public view {
-        console.log("Starting invariant test");
         for (uint256 i = 0; i < validSignatureAlgorithms.length; i++) {
             uint256 signatureAlgorithm = validSignatureAlgorithms[i];
             address[] memory registeredAddresses = handler.getRegisteredAddresses(signatureAlgorithm);
-            console.log(
-                "Checking algorithm %d, registered addresses: %d", signatureAlgorithm, registeredAddresses.length
-            );
 
             for (uint256 j = 0; j < registeredAddresses.length; j++) {
                 IProofOfPassportRegister.Proof memory proof = handler.getProof(signatureAlgorithm);
                 uint256 nullifier = handler.getNullifier(proof);
                 assertTrue(proofOfPassportRegister.isRegistered(nullifier, registeredAddresses[j]));
+                assertTrue(proofOfPassportRegister.validateProof(proof, registeredAddresses[j]));
             }
         }
-        console.log("Invariant test completed");
     }
 
     function invariant_getterFunctionsShouldNeverRevert() public view {
-        uint256 signatureAlgorithm = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender)));
-        address randomAddress = address(uint160(signatureAlgorithm));
+        uint256 randomSignatureAlgorithm = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender)));
+        address randomAddress = address(uint160(randomSignatureAlgorithm));
         
-        proofOfPassportRegister.getVerifier(signatureAlgorithm);
-        proofOfPassportRegister.getNullifierIndex(signatureAlgorithm);
+        proofOfPassportRegister.getVerifier(randomSignatureAlgorithm);
+        proofOfPassportRegister.getNullifierIndex(randomSignatureAlgorithm);
         proofOfPassportRegister.checkIfAddressIsSigner(randomAddress);
     }
 }

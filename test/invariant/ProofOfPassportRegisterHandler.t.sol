@@ -22,11 +22,7 @@ contract ProofOfPassportRegisterHandler is Test, TestCodeConstants, CodeConstant
             return;
         }
 
-        console.log("registerProof called with recipient: %s, _signatureAlgorithm: %d", recipient, _signatureAlgorithm);
-
         uint256 signatureAlgorithm = _getSignatureAlgorithm(_signatureAlgorithm);
-
-        console.log("Registering proof for signature algorithm: %d", signatureAlgorithm);
 
         IProofOfPassportRegister.Proof memory proof = getProof(signatureAlgorithm);
         uint256 nullifier = getNullifier(proof);
