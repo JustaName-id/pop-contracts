@@ -3,6 +3,8 @@ pragma solidity ^0.8.20;
 
 import {Script, console} from "forge-std/Script.sol";
 import {VerifierProveRSA65537SHA256} from "../src/verifiers/prove/Verifier_prove_rsa_65537_sha256.sol";
+import {VerifierProveRSA65537SHA1} from "../src/verifiers/prove/Verifier_prove_rsa_65537_sha1.sol";
+import {VerifierProveRSAPSS65537SHA256} from "../src/verifiers/prove/Verifier_prove_rsapss_65537_sha256.sol";
 import {IProofOfPassportRegister} from "../src/interfaces/IProofOfPassportRegister.sol";
 
 abstract contract CodeConstants {
@@ -25,6 +27,7 @@ abstract contract CodeConstants {
 
     uint256 public DEFAULT_ANVIL_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
     address public DEFAULT_ANVIL_ADDRESS = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    
 }
 
 contract HelperConfig is CodeConstants, Script {
@@ -42,7 +45,8 @@ contract HelperConfig is CodeConstants, Script {
     mapping(uint256 => NetworkConfig) public networkConfigs;
 
     constructor() {
-        networkConfigs[LOCAL_CHAIN_ID] = getOrCreateAnvilEthConfig();
+        // networkConfigs[LOCAL_CHAIN_ID] = getOrCreateAnvilEthConfig();
+        networkConfigs[ETH_SEPOLIA_CHAIN_ID] = getOrCreateSepoliaEthConfig();
     }
 
     function getConfigByChainId(uint256 chainId) public returns (NetworkConfig memory) {
@@ -50,6 +54,8 @@ contract HelperConfig is CodeConstants, Script {
             return networkConfigs[chainId];
         } else if (chainId == LOCAL_CHAIN_ID) {
             return getOrCreateAnvilEthConfig();
+        } else if (chainId == ETH_SEPOLIA_CHAIN_ID) {
+            return getOrCreateSepoliaEthConfig();
         } else {
             revert HelperConfig__InvalidChainId();
         }
@@ -79,6 +85,44 @@ contract HelperConfig is CodeConstants, Script {
         vm.stopBroadcast();
 
         initialVerifiers.push(address(verifierProveRSA65537SHA256));
+
+        networkConfig = NetworkConfig({
+            signatureAlgorithms: initialSignatureAlgorithms,
+            verifiers: initialVerifiers,
+            nullifiersIndexesInPubSigArray: initialNullifiersIndexesInPubSigArray,
+            signers: initialSigners,
+            deployerKey: DEFAULT_ANVIL_KEY
+        });
+
+        return networkConfig;
+    }
+
+    function getOrCreateSepoliaEthConfig() public returns (NetworkConfig memory) {
+        if (networkConfig.verifiers.length > 0 && networkConfig.verifiers[0] != address(0)) {
+            return networkConfig;
+        }
+        
+        vm.startBroadcast();
+        VerifierProveRSA65537SHA256 verifierProveRSA65537SHA256 = new VerifierProveRSA65537SHA256();
+        VerifierProveRSA65537SHA1 verifierProveRSA65537SHA1 = new VerifierProveRSA65537SHA1();
+        VerifierProveRSAPSS65537SHA256 verifierProveRSA65537PSSSHA256 = new VerifierProveRSAPSS65537SHA256();
+        vm.stopBroadcast();
+
+        initialSignatureAlgorithms.push(SIGNATURE_ALGORITHM_RSA_65537_SHA256);
+        initialSignatureAlgorithms.push(SIGNATURE_ALGORITHM_RSA_65537_SHA1);
+        initialSignatureAlgorithms.push(SIGNATURE_ALGORITHM_RSA_PSS_65537_SHA256);
+
+        initialVerifiers.push(address(verifierProveRSA65537SHA256));
+        initialVerifiers.push(address(verifierProveRSA65537SHA1));
+        initialVerifiers.push(address(verifierProveRSA65537PSSSHA256));
+
+        initialNullifiersIndexesInPubSigArray.push(NULLIFIER_INDEX_IN_PUB_SIGNAL);
+        initialNullifiersIndexesInPubSigArray.push(NULLIFIER_INDEX_IN_PUB_SIGNAL);
+        initialNullifiersIndexesInPubSigArray.push(NULLIFIER_INDEX_IN_PUB_SIGNAL);
+
+        address SIGNER = makeAddr("signer");
+
+        initialSigners.push(SIGNER);
 
         networkConfig = NetworkConfig({
             signatureAlgorithms: initialSignatureAlgorithms,
