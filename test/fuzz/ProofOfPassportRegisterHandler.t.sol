@@ -10,10 +10,17 @@ import {VerifierProveRSA65537SHA256} from "../../src/verifiers/prove/Verifier_pr
 
 contract ProofOfPassportRegisterHandler is Test, TestCodeConstants, CodeConstants {
     ProofOfPassportRegister s_register;
-    address[][] private registeredAddresses = new address[][](5);
+    address[][] private s_registeredAddresses = new address[][](5);
 
-    constructor(ProofOfPassportRegister _register) {
-        s_register = _register;
+    constructor(ProofOfPassportRegister register) {
+        s_register = register;
+    }
+
+    modifier notAlreadyRegisteredVerifier(uint256 signatureAlgorithm) {
+        if (signatureAlgorithm == 1 || signatureAlgorithm == 3 || signatureAlgorithm == 4) {
+            return;
+        }
+        _;
     }
 
     function registerProof(address recipient, uint256 signatureAlgorithmSeed) public {
@@ -21,44 +28,40 @@ contract ProofOfPassportRegisterHandler is Test, TestCodeConstants, CodeConstant
             return;
         }
 
-        uint256 signatureAlgorithm = _getSignatureAlgorithmBySeed(signatureAlgorithmSeed);
+        uint256 signatureAlgorithm = _getSignatureAlgorithmFromSeed(signatureAlgorithmSeed);
 
         IProofOfPassportRegister.Proof memory proof = getProof(signatureAlgorithm);
         uint256 nullifier = getNullifier(proof);
 
         if (!s_register.isRegistered(nullifier, recipient)) {
             s_register.registerWithProof(proof, recipient);
-            registeredAddresses[signatureAlgorithm].push(recipient);
+            s_registeredAddresses[signatureAlgorithm].push(recipient);
         }
     }
 
-    function setSigner(address _signer) public {
-        if (_signer == address(0)) {
+    function setSigner(address signer) public {
+        if (signer == address(0)) {
             return;
         }
 
         address owner = s_register.owner();
 
         vm.prank(owner);
-        s_register.setSigner(_signer);
+        s_register.setSigner(signer);
     }
 
-    function removeSigner(address _signer) public {
-        bool isSigner = s_register.checkIfAddressIsSigner(_signer);
+    function removeSigner(address signer) public {
+        bool isSigner = s_register.checkIfAddressIsSigner(signer);
 
         if (isSigner) {
             address owner = s_register.owner();
 
             vm.prank(owner);
-            s_register.removeSigner(_signer);
+            s_register.removeSigner(signer);
         }
     }
 
-    function removeVerifier(uint256 signatureAlgorithm) public {
-        if (signatureAlgorithm == 1 || signatureAlgorithm == 3 || signatureAlgorithm == 4) {
-            return;
-        }
-
+    function removeVerifier(uint256 signatureAlgorithm) public notAlreadyRegisteredVerifier(signatureAlgorithm) {
         address verifier = s_register.getVerifier(signatureAlgorithm);
 
         if (verifier == address(0)) {
@@ -71,11 +74,7 @@ contract ProofOfPassportRegisterHandler is Test, TestCodeConstants, CodeConstant
         s_register.removeVerifier(signatureAlgorithm);
     }
 
-    function setVerifier(uint256 signatureAlgorithm) public {
-        if (signatureAlgorithm == 1 || signatureAlgorithm == 3 || signatureAlgorithm == 4) {
-            return;
-        }
-
+    function setVerifier(uint256 signatureAlgorithm) public notAlreadyRegisteredVerifier(signatureAlgorithm) {
         address owner = s_register.owner();
 
         VerifierProveRSA65537SHA256 newVerifier = new VerifierProveRSA65537SHA256();
@@ -85,11 +84,11 @@ contract ProofOfPassportRegisterHandler is Test, TestCodeConstants, CodeConstant
     }
 
     function getRegisteredAddresses(uint256 signatureAlgorithm) public view returns (address[] memory) {
-        return registeredAddresses[signatureAlgorithm];
+        return s_registeredAddresses[signatureAlgorithm];
     }
 
     function getRegisteredAddressesCount(uint256 signatureAlgorithm) public view returns (uint256) {
-        return registeredAddresses[signatureAlgorithm].length;
+        return s_registeredAddresses[signatureAlgorithm].length;
     }
 
     function getNullifier(IProofOfPassportRegister.Proof memory proof) public view returns (uint256) {
@@ -110,7 +109,7 @@ contract ProofOfPassportRegisterHandler is Test, TestCodeConstants, CodeConstant
         }
     }
 
-    function _getSignatureAlgorithmBySeed(uint256 signatureAlgorithm) private pure returns (uint256) {
+    function _getSignatureAlgorithmFromSeed(uint256 signatureAlgorithm) private pure returns (uint256) {
         if (signatureAlgorithm % 3 == 0) {
             return 1;
         } else if (signatureAlgorithm % 3 == 1) {
