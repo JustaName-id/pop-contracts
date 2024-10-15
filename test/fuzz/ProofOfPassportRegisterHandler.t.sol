@@ -12,15 +12,15 @@ contract ProofOfPassportRegisterHandler is Test, TestCodeConstants, CodeConstant
     ProofOfPassportRegister s_register;
     address[][] private s_registeredAddresses = new address[][](5);
 
-    constructor(ProofOfPassportRegister register) {
-        s_register = register;
-    }
-
     modifier notAlreadyRegisteredVerifier(uint256 signatureAlgorithm) {
         if (signatureAlgorithm == 1 || signatureAlgorithm == 3 || signatureAlgorithm == 4) {
             return;
         }
         _;
+    }
+
+    constructor(ProofOfPassportRegister register) {
+        s_register = register;
     }
 
     function registerProof(address recipient, uint256 signatureAlgorithmSeed) public {
