@@ -10,19 +10,18 @@ import {VerifierProveRSA65537SHA256} from "../../src/verifiers/prove/Verifier_pr
 
 contract ProofOfPassportRegisterHandler is Test, TestCodeConstants, CodeConstants {
     ProofOfPassportRegister s_register;
-    address[][] private registeredAddresses;
+    address[][] private registeredAddresses = new address[][](5);
 
     constructor(ProofOfPassportRegister _register) {
         s_register = _register;
-        registeredAddresses = new address[][](5);
     }
 
-    function registerProof(address recipient, uint256 _signatureAlgorithm) public {
+    function registerProof(address recipient, uint256 signatureAlgorithmSeed) public {
         if (recipient == address(0)) {
             return;
         }
 
-        uint256 signatureAlgorithm = _getSignatureAlgorithm(_signatureAlgorithm);
+        uint256 signatureAlgorithm = _getSignatureAlgorithmBySeed(signatureAlgorithmSeed);
 
         IProofOfPassportRegister.Proof memory proof = getProof(signatureAlgorithm);
         uint256 nullifier = getNullifier(proof);
@@ -55,6 +54,36 @@ contract ProofOfPassportRegisterHandler is Test, TestCodeConstants, CodeConstant
         }
     }
 
+    function removeVerifier(uint256 signatureAlgorithm) public {
+        if (signatureAlgorithm == 1 || signatureAlgorithm == 3 || signatureAlgorithm == 4) {
+            return;
+        }
+
+        address verifier = s_register.getVerifier(signatureAlgorithm);
+
+        if (verifier == address(0)) {
+            return;
+        }
+
+        address owner = s_register.owner();
+
+        vm.prank(owner);
+        s_register.removeVerifier(signatureAlgorithm);
+    }
+
+    function setVerifier(uint256 signatureAlgorithm) public {
+        if (signatureAlgorithm == 1 || signatureAlgorithm == 3 || signatureAlgorithm == 4) {
+            return;
+        }
+
+        address owner = s_register.owner();
+
+        VerifierProveRSA65537SHA256 newVerifier = new VerifierProveRSA65537SHA256();
+
+        vm.prank(owner);
+        s_register.setVerifier(signatureAlgorithm, address(newVerifier), NULLIFIER_INDEX_IN_PUB_SIGNAL);
+    }
+
     function getRegisteredAddresses(uint256 signatureAlgorithm) public view returns (address[] memory) {
         return registeredAddresses[signatureAlgorithm];
     }
@@ -81,7 +110,7 @@ contract ProofOfPassportRegisterHandler is Test, TestCodeConstants, CodeConstant
         }
     }
 
-    function _getSignatureAlgorithm(uint256 signatureAlgorithm) private pure returns (uint256) {
+    function _getSignatureAlgorithmBySeed(uint256 signatureAlgorithm) private pure returns (uint256) {
         if (signatureAlgorithm % 3 == 0) {
             return 1;
         } else if (signatureAlgorithm % 3 == 1) {

@@ -15,8 +15,8 @@ fs_permissions = [
 runs = 256
 
 [invariant]
-runs=50
-depth=25
+runs=250
+depth=128
 fail_on_revert = true
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

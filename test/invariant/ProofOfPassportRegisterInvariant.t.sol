@@ -24,22 +24,17 @@ contract ProofOfPassportRegisterInvariant is StdInvariant, Test, CodeConstants, 
     uint256[] private validSignatureAlgorithms = [1, 3, 4];
 
     function setUp() external {
-        console.log("Starting setUp");
         DeployProofOfPassportRegister deployer = new DeployProofOfPassportRegister();
         (proofOfPassportRegister, helperConfig) = deployer.run();
-        console.log("Deployment completed");
 
         vm.startBroadcast();
         verifierProveRSA65537SHA1 = new VerifierProveRSA65537SHA1();
         verifierProveRSAPSS65537SHA256 = new VerifierProveRSAPSS65537SHA256();
         vm.stopBroadcast();
-        console.log("Verifiers created");
 
         handler = new ProofOfPassportRegisterHandler(proofOfPassportRegister);
-        console.log("Handler created");
 
         address owner = proofOfPassportRegister.owner();
-        console.log("Owner address: %s", owner);
 
         vm.startPrank(owner);
         proofOfPassportRegister.setSigner(address(handler));
@@ -52,10 +47,8 @@ contract ProofOfPassportRegisterInvariant is StdInvariant, Test, CodeConstants, 
             NULLIFIER_INDEX_IN_PUB_SIGNAL
         );
         vm.stopPrank();
-        console.log("Signer and verifiers set");
 
         targetContract(address(handler));
-        console.log("Target contract set");
     }
 
     function invariant_onlyRegisteredAddressesAreValid() public view {
@@ -73,9 +66,10 @@ contract ProofOfPassportRegisterInvariant is StdInvariant, Test, CodeConstants, 
     }
 
     function invariant_getterFunctionsShouldNeverRevert() public view {
-        uint256 randomSignatureAlgorithm = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender)));
+        uint256 randomSignatureAlgorithm =
+            uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender)));
         address randomAddress = address(uint160(randomSignatureAlgorithm));
-        
+
         proofOfPassportRegister.getVerifier(randomSignatureAlgorithm);
         proofOfPassportRegister.getNullifierIndex(randomSignatureAlgorithm);
         proofOfPassportRegister.checkIfAddressIsSigner(randomAddress);
