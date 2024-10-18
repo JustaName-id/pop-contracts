@@ -34,7 +34,13 @@ NETWORK_ARGS := --rpc-url http://localhost:8545 --account $(LOCAL_ACCOUNT) --bro
 
 ifeq ($(findstring --network sepolia,$(ARGS)),--network sepolia)
 	NETWORK_ARGS := --rpc-url $(SEPOLIA_RPC_URL) --account $(SEPOLIA_ACCOUNT) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) -vvvv
+else ifeq ($(findstring --network base-sepolia,$(ARGS)),--network base-sepolia)
+	NETWORK_ARGS := --rpc-url $(BASE_SEPOLIA_RPC_URL) --account $(BASE_SEPOLIA_ACCOUNT) --broadcast --verify --etherscan-api-key $(BASESCAN_API_KEY) -vvvv
 endif
 
 deploy-sepolia:
 	@forge script script/DeployProofOfPassportRegister.s.sol:DeployProofOfPassportRegister $(NETWORK_ARGS)
+
+deploy-base-sepolia:
+	@forge script script/DeployProofOfPassportRegister.s.sol:DeployProofOfPassportRegister $(NETWORK_ARGS)
+
