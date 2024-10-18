@@ -37,15 +37,13 @@ contract HelperConfig is CodeConstants, Script {
         address[] signers;
     }
 
-    constructor() {}
-
     function getConfigByChainId(uint256 chainId) public returns (NetworkConfig memory) {
         if (chainId == LOCAL_CHAIN_ID) {
             return getOrCreateAnvilEthConfig();
         } else if (chainId == ETH_SEPOLIA_CHAIN_ID) {
-            return getOrCreateSepoliaEthConfig();
+            return getOrCreateSepoliaConfig();
         } else if (chainId == BASE_SEPOLIA_CHAIN_ID) {
-            return getOrCreateSepoliaEthConfig();
+            return getOrCreateSepoliaConfig();
         } else {
             revert HelperConfig__InvalidChainId();
         }
@@ -79,7 +77,7 @@ contract HelperConfig is CodeConstants, Script {
         });
     }
 
-    function getOrCreateSepoliaEthConfig() public returns (NetworkConfig memory) {
+    function getOrCreateSepoliaConfig() public returns (NetworkConfig memory) {
         vm.startBroadcast();
         VerifierProveRSA65537SHA256 verifierProveRSA65537SHA256 = new VerifierProveRSA65537SHA256();
         VerifierProveRSA65537SHA1 verifierProveRSA65537SHA1 = new VerifierProveRSA65537SHA1();

@@ -78,11 +78,6 @@ contract TestProofOfPassportRegister is Test, Script, CodeConstants {
         assertNotEq(verifier, address(0));
         assertEq(nullifierIndex, NULLIFIER_INDEX_IN_PUB_SIGNAL);
         assertEq(signatureAlgorithmIndexInPubSignals, SIGNATURE_ALGORITHM_INDEX_IN_PUB_SIGNALS);
-
-        // TODO: change this to test against the deployed values
-        // if (block.chainid == LOCAL_CHAIN_ID) {
-        //     assertEq(owner, DEFAULT_ANVIL_ADDRESS);
-        // }
     }
 
     /*//////////////////////////////////////////////////////////////
