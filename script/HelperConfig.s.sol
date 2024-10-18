@@ -9,7 +9,7 @@ import {IProofOfPassportRegister} from "../src/interfaces/IProofOfPassportRegist
 
 abstract contract CodeConstants {
     uint256 public constant MAINNET_ETH_CHAIN_ID = 1;
-    uint256 public constant LINEA_SEPOLIA_CHAIN_ID = 59141;
+    uint256 public constant BASE_SEPOLIA_CHAIN_ID = 84532;
     uint256 public constant ETH_SEPOLIA_CHAIN_ID = 11155111;
     uint256 public constant LOCAL_CHAIN_ID = 31337;
 
@@ -44,7 +44,7 @@ contract HelperConfig is CodeConstants, Script {
             return getOrCreateAnvilEthConfig();
         } else if (chainId == ETH_SEPOLIA_CHAIN_ID) {
             return getOrCreateSepoliaEthConfig();
-        } else if (chainId == LINEA_SEPOLIA_CHAIN_ID) {
+        } else if (chainId == BASE_SEPOLIA_CHAIN_ID) {
             return getOrCreateSepoliaEthConfig();
         } else {
             revert HelperConfig__InvalidChainId();
@@ -82,26 +82,24 @@ contract HelperConfig is CodeConstants, Script {
     function getOrCreateSepoliaEthConfig() public returns (NetworkConfig memory) {
         vm.startBroadcast();
         VerifierProveRSA65537SHA256 verifierProveRSA65537SHA256 = new VerifierProveRSA65537SHA256();
-        // VerifierProveRSA65537SHA1 verifierProveRSA65537SHA1 = new VerifierProveRSA65537SHA1();
-        // VerifierProveRSAPSS65537SHA256 verifierProveRSA65537PSSSHA256 = new VerifierProveRSAPSS65537SHA256();
+        VerifierProveRSA65537SHA1 verifierProveRSA65537SHA1 = new VerifierProveRSA65537SHA1();
+        VerifierProveRSAPSS65537SHA256 verifierProveRSA65537PSSSHA256 = new VerifierProveRSAPSS65537SHA256();
         vm.stopBroadcast();
 
         initialSignatureAlgorithms.push(SIGNATURE_ALGORITHM_RSA_65537_SHA256);
-        // initialSignatureAlgorithms.push(SIGNATURE_ALGORITHM_RSA_65537_SHA1);
-        // initialSignatureAlgorithms.push(SIGNATURE_ALGORITHM_RSA_PSS_65537_SHA256);
+        initialSignatureAlgorithms.push(SIGNATURE_ALGORITHM_RSA_65537_SHA1);
+        initialSignatureAlgorithms.push(SIGNATURE_ALGORITHM_RSA_PSS_65537_SHA256);
 
         initialVerifiers.push(address(verifierProveRSA65537SHA256));
-        // initialVerifiers.push(address(verifierProveRSA65537SHA1));
-        // initialVerifiers.push(address(verifierProveRSA65537PSSSHA256));
+        initialVerifiers.push(address(verifierProveRSA65537SHA1));
+        initialVerifiers.push(address(verifierProveRSA65537PSSSHA256));
 
         initialNullifiersIndexesInPubSigArray.push(NULLIFIER_INDEX_IN_PUB_SIGNAL);
-        // initialNullifiersIndexesInPubSigArray.push(NULLIFIER_INDEX_IN_PUB_SIGNAL);
-        // initialNullifiersIndexesInPubSigArray.push(NULLIFIER_INDEX_IN_PUB_SIGNAL);
+        initialNullifiersIndexesInPubSigArray.push(NULLIFIER_INDEX_IN_PUB_SIGNAL);
+        initialNullifiersIndexesInPubSigArray.push(NULLIFIER_INDEX_IN_PUB_SIGNAL);
 
         address INITIAL_SIGNER = vm.envAddress("INITIAL_SIGNER");
         initialSigners.push(INITIAL_SIGNER);
-
-        console.log("INITIAL_SIGNER", INITIAL_SIGNER);
 
         return NetworkConfig({
             signatureAlgorithms: initialSignatureAlgorithms,
